@@ -1,14 +1,19 @@
 import numpy as np
+from typing import List
 
 
 class ModelStruct:
     def __init__(self):
         self.hidden_weights: np.ndarray
         self.output_weights: np.ndarray
+
         self.hidden_transfer: np.ndarray
         self.hidden_activation: np.ndarray
+
         self.output_transfer: np.ndarray
         self.output: np.ndarray
+
+        self.loss: List[float] = []
 
 
 def _tanh(tensor: np.ndarray) -> np.ndarray:
@@ -25,3 +30,55 @@ def _sigmoid(tensor: np.ndarray) -> np.ndarray:
 
 def _d_sigmoid(tensor: np.ndarray) -> np.ndarray:
     return _sigmoid(tensor) * (1 - _sigmoid(tensor))
+
+
+def _mse_loss(model: ModelStruct, labels: np.ndarray) -> float:
+    return np.sum((model.output - labels)**2) / 2*labels.shape[0]
+
+
+def _forwardpass(model: ModelStruct, data: np.ndarray) -> ModelStruct:
+    """
+    Full transfer layer, updates model with data. Returns modelstruct with updated fields
+    """
+    model.hidden_transfer = data @ model.hidden_weights
+    model.hidden_activation = _tanh(model.hidden_transfer)
+
+    model.output_transfer = model.hidden_activation @ model.output_weights
+    model.output = _sigmoid(model.output_transfer)
+
+    return model
+
+
+def _calculate_loss(model: ModelStruct, labels: np.ndarray) -> ModelStruct:
+    """
+    Calculates the loss and appends it to the model loss
+    """
+    model.loss.append(_mse_loss(model, labels))
+    return model
+
+
+def _update_weights(model: ModelStruct, hidden_weights_grads: np.ndarray, output_weights_grads: np.ndarray, learn_rate: float) -> ModelStruct:
+    """
+    Updates both weights of the model and returns the updated model
+    """
+    model.hidden_weights -= learn_rate * hidden_weights_grads
+    model.output_weights -= learn_rate * output_weights_grads
+
+    return model
+
+
+def _backpropagation(model: ModelStruct, labels: np.ndarray, data: np.ndarray, learn_rate: float) -> ModelStruct:
+    """
+    Does backprop to updates model weights. Returns model with updated weights
+    """
+    d_output = (model.output - labels) / labels.shape[0]
+    d_output_transfer = _d_sigmoid(model.output_transfer) * d_output
+    d_output_weights = model.hidden_activation.T @ d_output_transfer
+
+    d_hidden_activation = d_output_transfer @ model.output_weights.T
+    d_hidden_transfer = _d_tanh(model.hidden_transfer) * d_hidden_activation
+    d_hidden_weights = data.T @ d_hidden_transfer
+
+    model = _update_weights(model, d_hidden_weights, d_output_weights, learn_rate)
+
+    return model
