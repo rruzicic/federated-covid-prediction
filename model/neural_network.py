@@ -1,5 +1,7 @@
 import numpy as np
 from typing import List
+from model.data import load_data
+from model.globals import DATA_PATH, LEARN_RATE
 
 
 class ModelStruct:
@@ -80,5 +82,38 @@ def _backpropagation(model: ModelStruct, labels: np.ndarray, data: np.ndarray, l
     d_hidden_weights = data.T @ d_hidden_transfer
 
     model = _update_weights(model, d_hidden_weights, d_output_weights, learn_rate)
+
+    return model
+
+
+def one_epoch(model: ModelStruct) -> ModelStruct:
+    data, labels = load_data(DATA_PATH)
+
+
+def personalized_weight_update(
+        model: ModelStruct,
+        aggregated_hidden_weights: List[np.ndarray],
+        aggregated_output_weights: List[np.ndarray],
+        lambda_coef: float
+        ) -> ModelStruct:
+    """
+    Does personalized weight updates to conform to the updated ones
+    """
+    avg_hidden_weights = 1. / (len(aggregated_hidden_weights) + 1) \
+        * np.add.reduce([*aggregated_hidden_weights, model.hidden_weights])
+
+    sq_norm_hidden_weights = np.sum([
+        np.linalg.norm(model.hidden_weights - other_weights)**2
+        for other_weights in aggregated_hidden_weights
+        ])
+    model.hidden_weights = avg_hidden_weights + lambda_coef * sq_norm_hidden_weights
+
+    avg_output_weights = 1. / (len(aggregated_output_weights) + 1)\
+        * np.add.reduce([*aggregated_output_weights, model.output_weights])
+    
+    sq_norm_output_weights = np.sum([
+        np.linalg.norm(model.output_weights - other_weights)**2
+        for other_weights in aggregated_output_weights])
+    model.output_weights = avg_output_weights + lambda_coef * sq_norm_output_weights
 
     return model
