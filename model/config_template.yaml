@@ -1,5 +1,5 @@
 # path to your part of data
-"data_path": data.csv
+"data_path": model/data.csv
 
 "learn_rate": 0.01
 

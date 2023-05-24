@@ -1,4 +1,13 @@
+# general
 *.sum
 **.sum
-
 *test*.*
+
+# "personal" dataset
+model/*dataset*.*
+model/*Dataset*.*
+model/config.yaml
+
+
+# python ignore
+__pycache__
