@@ -4,8 +4,8 @@
 *test*.*
 
 # "personal" dataset
-model/*dataset*.*
-model/*Dataset*.*
+model/*data*.*
+model/*Data*.*
 model/config.yaml
 
 
