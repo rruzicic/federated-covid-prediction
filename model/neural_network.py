@@ -1,7 +1,6 @@
-import numpy as np
 from typing import List
-from model.data import load_data
-from model.globals import DATA_PATH, LEARN_RATE
+import numpy as np
+from model.globals import LEARN_RATE, LAMBDA
 
 
 class ModelStruct:
@@ -105,8 +104,7 @@ def one_epoch(model: ModelStruct, data: np.ndarray, labels: np.ndarray) -> Model
 def personalized_weight_update(
         model: ModelStruct,
         aggregated_hidden_weights: List[np.ndarray],
-        aggregated_output_weights: List[np.ndarray],
-        lambda_coef: float
+        aggregated_output_weights: List[np.ndarray]
         ) -> ModelStruct:
     """
     Does personalized weight updates to conform to the updated ones
@@ -118,7 +116,7 @@ def personalized_weight_update(
         np.linalg.norm(model.hidden_weights - other_weights)**2
         for other_weights in aggregated_hidden_weights
         ])
-    model.hidden_weights = avg_hidden_weights + lambda_coef * sq_norm_hidden_weights
+    model.hidden_weights = avg_hidden_weights + LAMBDA * sq_norm_hidden_weights
 
     avg_output_weights = 1. / (len(aggregated_output_weights) + 1)\
         * np.add.reduce([*aggregated_output_weights, model.output_weights])
@@ -126,6 +124,6 @@ def personalized_weight_update(
     sq_norm_output_weights = np.sum([
         np.linalg.norm(model.output_weights - other_weights)**2
         for other_weights in aggregated_output_weights])
-    model.output_weights = avg_output_weights + lambda_coef * sq_norm_output_weights
+    model.output_weights = avg_output_weights + LAMBDA * sq_norm_output_weights
 
     return model
