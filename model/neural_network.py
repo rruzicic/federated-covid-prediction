@@ -59,7 +59,12 @@ def _calculate_loss(model: ModelStruct, labels: np.ndarray) -> ModelStruct:
     return model
 
 
-def _update_weights(model: ModelStruct, hidden_weights_grads: np.ndarray, output_weights_grads: np.ndarray, learn_rate: float) -> ModelStruct:
+def _update_weights(
+        model: ModelStruct,
+        hidden_weights_grads: np.ndarray,
+        output_weights_grads: np.ndarray,
+        learn_rate: float
+        ) -> ModelStruct:
     """
     Updates both weights of the model and returns the updated model
     """
@@ -86,8 +91,15 @@ def _backpropagation(model: ModelStruct, labels: np.ndarray, data: np.ndarray, l
     return model
 
 
-def one_epoch(model: ModelStruct) -> ModelStruct:
-    data, labels = load_data(DATA_PATH)
+def one_epoch(model: ModelStruct, data: np.ndarray, labels: np.ndarray) -> ModelStruct:
+    """
+    Does one pass through the data
+    """
+    model = _forwardpass(model, data)
+    model = _calculate_loss(model, labels)
+    model = _backpropagation(model, labels, data, LEARN_RATE)
+
+    return model
 
 
 def personalized_weight_update(
