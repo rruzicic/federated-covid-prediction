@@ -8,16 +8,24 @@ class ModelStruct:
     Struct in which all the relevant model data will be kept for easy access
     """
     def __init__(self):
-        self.hidden_weights: np.ndarray
-        self.output_weights: np.ndarray
+        self.hidden_weights: np.ndarray = np.ndarray([])
+        self.output_weights: np.ndarray = np.ndarray([])
 
-        self.hidden_transfer: np.ndarray
-        self.hidden_activation: np.ndarray
+        self.hidden_transfer: np.ndarray = np.ndarray([])
+        self.hidden_activation: np.ndarray = np.ndarray([])
 
-        self.output_transfer: np.ndarray
-        self.output: np.ndarray
+        self.output_transfer: np.ndarray = np.ndarray([])
+        self.output: np.ndarray = np.ndarray([])
 
         self.loss: List[float] = []
+
+    def to_dict(self):
+        return {
+            "hidden_weights":   self.hidden_weights.tolist(),
+            "output_weights":   self.output_weights.tolist(),
+            "output":           self.output.tolist(),
+            "loss":             self.loss,
+        }
 
 
 def _tanh(tensor: np.ndarray) -> np.ndarray:
@@ -61,8 +69,8 @@ def _init_model_weights(model: ModelStruct, weights: Dict[str, np.ndarray]) -> M
     """
     Given a dict with hidden_weights and output_weights as keys, initializes the model's weights
     """
-    model.hidden_weights = weights['hidden_weights']
-    model.output_weights = weights['output_weights']
+    model.hidden_weights = np.array(weights['hidden_weights'])
+    model.output_weights = np.array(weights['output_weights'])
 
     return model
 
