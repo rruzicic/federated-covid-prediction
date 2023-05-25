@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import Response
 from flask import request
+import numpy as np
 
 from model.data import load_data
 from model.neural_network import ModelStruct, _init_model_weights, personalized_weight_update, one_epoch
@@ -67,8 +68,8 @@ def collect_weights():
         "output_weights": req["output_weigths"]
     }
 
-    OTHERS_HIDDEN_WEIGHTS.append(weights["hidden_weights"])
-    OTHERS_OUTPUT_WEIGHTS.append(weights["output_weights"])
+    OTHERS_HIDDEN_WEIGHTS.append(np.array(weights["hidden_weights"]))
+    OTHERS_OUTPUT_WEIGHTS.append(np.array(weights["output_weights"]))
 
     if (OTHERS_HIDDEN_WEIGHTS == peers-1) and (OTHERS_OUTPUT_WEIGHTS == peers-1):
         MODEL = personalized_weight_update(MODEL, OTHERS_HIDDEN_WEIGHTS, OTHERS_OUTPUT_WEIGHTS)
