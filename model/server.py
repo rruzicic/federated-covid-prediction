@@ -3,7 +3,7 @@ from flask import Response
 from flask import request
 
 from model.data import load_data
-from model.neural_network import ModelStruct, _init_model_weights, personalized_weight_update
+from model.neural_network import ModelStruct, _init_model_weights, personalized_weight_update, one_epoch
 
 DATA, LABELS = load_data()
 MODEL = ModelStruct()
@@ -13,11 +13,17 @@ OTHERS_OUTPUT_WEIGHTS = []
 
 @APP.get('/')
 def hello_world():
+    """
+    Health check endpoint
+    """
     return "<p>I am alive</p>"
 
 
 @APP.get('/model')
 def get_model():
+    """
+    Returns json with model weights, output and loss
+    """
     return MODEL.to_dict()
 
 
@@ -49,7 +55,7 @@ def collect_weights():
     JSON: {
         "hidden_weights": [[...], [...]],
         "output_weights": [[...], [...]],
-        peers: int
+        "peers": int
     }
     """
     global MODEL, OTHERS_HIDDEN_WEIGHTS, OTHERS_OUTPUT_WEIGHTS
@@ -69,6 +75,17 @@ def collect_weights():
         OTHERS_HIDDEN_WEIGHTS = []
         OTHERS_OUTPUT_WEIGHTS = []
 
+    return Response(200)
+
+
+@APP.get("/one-epoch")
+def start_one_epoch():
+    """
+    Tells the current model to do one epoch of learning
+    """
+    global MODEL, DATA, LABELS
+
+    MODEL = one_epoch(MODEL, DATA, LABELS)
     return Response(200)
 
 
