@@ -89,6 +89,17 @@ def start_one_epoch():
     return Response(200)
 
 
+@APP.get("/weights")
+def get_model_weights_for_collecting():
+    """
+    Returns a json with the model's weights
+    """
+    return {
+        "hidden_weights": MODEL.hidden_weights.tolist(),
+        "output_weights": MODEL.output_weights.tolist()
+    }
+
+
 def main():
     global APP
     APP.run(host="localhost", port=6900, debug=True)
