@@ -7,6 +7,7 @@ class ModelStruct:
     """
     Struct in which all the relevant model data will be kept for easy access
     """
+
     def __init__(self):
         self.hidden_weights: np.ndarray = np.ndarray([])
         self.output_weights: np.ndarray = np.ndarray([])
@@ -21,10 +22,10 @@ class ModelStruct:
 
     def to_dict(self):
         return {
-            "hidden_weights":   self.hidden_weights.tolist(),
-            "output_weights":   self.output_weights.tolist(),
-            "output":           self.output.tolist(),
-            "loss":             self.loss,
+            "hidden_weights": self.hidden_weights.tolist(),
+            "output_weights": self.output_weights.tolist(),
+            "output": self.output.tolist(),
+            "loss": self.loss,
         }
 
 
@@ -33,7 +34,7 @@ def _tanh(tensor: np.ndarray) -> np.ndarray:
 
 
 def _d_tanh(tensor: np.ndarray) -> np.ndarray:
-    return 1 - _tanh(tensor)**2
+    return 1 - _tanh(tensor) ** 2
 
 
 def _relu(tensor: np.ndarray) -> np.ndarray:
@@ -45,7 +46,9 @@ def _d_relu(tensor: np.ndarray) -> np.ndarray:
 
 
 def _sigmoid(tensor: np.ndarray) -> np.ndarray:
-    return np.where(tensor >= 0, 1 / (1 + np.exp(-tensor)), np.exp(tensor) / (1 + np.exp(tensor)))
+    return np.where(
+        tensor >= 0, 1 / (1 + np.exp(-tensor)), np.exp(tensor) / (1 + np.exp(tensor))
+    )
 
 
 def _d_sigmoid(tensor: np.ndarray) -> np.ndarray:
@@ -53,7 +56,7 @@ def _d_sigmoid(tensor: np.ndarray) -> np.ndarray:
 
 
 def _mse_loss(model: ModelStruct, labels: np.ndarray) -> float:
-    return np.sum((model.output - labels)**2) / (2*labels.shape[0])
+    return np.sum((model.output - labels) ** 2) / (2 * labels.shape[0])
 
 
 def _init_model_weights_debug(model: ModelStruct, data: np.ndarray) -> ModelStruct:
@@ -65,12 +68,15 @@ def _init_model_weights_debug(model: ModelStruct, data: np.ndarray) -> ModelStru
 
     return model
 
-def _init_model_weights(model: ModelStruct, weights: Dict[str, np.ndarray]) -> ModelStruct:
+
+def _init_model_weights(
+    model: ModelStruct, weights: Dict[str, np.ndarray]
+) -> ModelStruct:
     """
     Given a dict with hidden_weights and output_weights as keys, initializes the model's weights
     """
-    model.hidden_weights = np.array(weights['hidden_weights'])
-    model.output_weights = np.array(weights['output_weights'])
+    model.hidden_weights = np.array(weights["hidden_weights"])
+    model.output_weights = np.array(weights["output_weights"])
 
     return model
 
@@ -97,11 +103,11 @@ def _calculate_loss(model: ModelStruct, labels: np.ndarray) -> ModelStruct:
 
 
 def _update_weights(
-        model: ModelStruct,
-        hidden_weights_grads: np.ndarray,
-        output_weights_grads: np.ndarray,
-        learn_rate: float
-        ) -> ModelStruct:
+    model: ModelStruct,
+    hidden_weights_grads: np.ndarray,
+    output_weights_grads: np.ndarray,
+    learn_rate: float,
+) -> ModelStruct:
     """
     Updates both weights of the model and returns the updated model
     """
@@ -112,11 +118,8 @@ def _update_weights(
 
 
 def _backpropagation(
-        model: ModelStruct,
-        labels: np.ndarray,
-        data: np.ndarray,
-        learn_rate: float
-        ) -> ModelStruct:
+    model: ModelStruct, labels: np.ndarray, data: np.ndarray, learn_rate: float
+) -> ModelStruct:
     """
     Does backprop to updates model weights. Returns model with updated weights
     """
@@ -145,28 +148,39 @@ def one_epoch(model: ModelStruct, data: np.ndarray, labels: np.ndarray) -> Model
 
 
 def personalized_weight_update(
-        model: ModelStruct,
-        aggregated_hidden_weights: List[np.ndarray],
-        aggregated_output_weights: List[np.ndarray]
-        ) -> ModelStruct:
+    model: ModelStruct,
+    aggregated_hidden_weights: List[np.ndarray],
+    aggregated_output_weights: List[np.ndarray],
+) -> ModelStruct:
     """
     Does personalized weight updates to conform to the updated ones
     """
-    avg_hidden_weights = 1. / (len(aggregated_hidden_weights) + 1) \
+    avg_hidden_weights = (
+        1.0
+        / (len(aggregated_hidden_weights) + 1)
         * np.add.reduce([*aggregated_hidden_weights, model.hidden_weights])
+    )
 
-    sq_norm_hidden_weights = np.sum([
-        np.linalg.norm(model.hidden_weights - other_weights)**2
-        for other_weights in aggregated_hidden_weights
-        ])
+    sq_norm_hidden_weights = np.sum(
+        [
+            np.linalg.norm(model.hidden_weights - other_weights) ** 2
+            for other_weights in aggregated_hidden_weights
+        ]
+    )
     model.hidden_weights = avg_hidden_weights + LAMBDA * sq_norm_hidden_weights
 
-    avg_output_weights = 1. / (len(aggregated_output_weights) + 1)\
+    avg_output_weights = (
+        1.0
+        / (len(aggregated_output_weights) + 1)
         * np.add.reduce([*aggregated_output_weights, model.output_weights])
+    )
 
-    sq_norm_output_weights = np.sum([
-        np.linalg.norm(model.output_weights - other_weights)**2
-        for other_weights in aggregated_output_weights])
+    sq_norm_output_weights = np.sum(
+        [
+            np.linalg.norm(model.output_weights - other_weights) ** 2
+            for other_weights in aggregated_output_weights
+        ]
+    )
     model.output_weights = avg_output_weights + LAMBDA * sq_norm_output_weights
 
     return model

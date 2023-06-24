@@ -4,7 +4,12 @@ from flask import request
 import numpy as np
 
 from model.data import load_data
-from model.neural_network import ModelStruct, _init_model_weights, personalized_weight_update, one_epoch
+from model.neural_network import (
+    ModelStruct,
+    _init_model_weights,
+    personalized_weight_update,
+    one_epoch,
+)
 
 DATA, LABELS = load_data()
 MODEL = ModelStruct()
@@ -12,7 +17,8 @@ APP = Flask(__name__)
 OTHERS_HIDDEN_WEIGHTS = []
 OTHERS_OUTPUT_WEIGHTS = []
 
-@APP.get('/')
+
+@APP.get("/")
 def hello_world():
     """
     Health check endpoint
@@ -20,7 +26,7 @@ def hello_world():
     return "<p>I am alive</p>"
 
 
-@APP.get('/model')
+@APP.get("/model")
 def get_model():
     """
     Returns json with model weights, output and loss
@@ -28,7 +34,7 @@ def get_model():
     return MODEL.to_dict()
 
 
-@APP.post('/init')
+@APP.post("/init")
 def init_weights():
     """
     Endpoint that consumes a json with hidden_weights and output_weights
@@ -45,7 +51,7 @@ def init_weights():
     return Response(status=200)
 
 
-@APP.post('/collect')
+@APP.post("/collect")
 def collect_weights():
     """
     Json has someone elses hidden and output weights similar to init_weights' json
@@ -62,17 +68,19 @@ def collect_weights():
     global MODEL, OTHERS_HIDDEN_WEIGHTS, OTHERS_OUTPUT_WEIGHTS
 
     req = request.get_json(force=True)
-    peers = req['peers']
+    peers = req["peers"]
     weights = {
         "hidden_weights": req["hidden_weights"],
-        "output_weights": req["output_weigths"]
+        "output_weights": req["output_weigths"],
     }
 
     OTHERS_HIDDEN_WEIGHTS.append(np.array(weights["hidden_weights"]))
     OTHERS_OUTPUT_WEIGHTS.append(np.array(weights["output_weights"]))
 
-    if (OTHERS_HIDDEN_WEIGHTS == peers-1) and (OTHERS_OUTPUT_WEIGHTS == peers-1):
-        MODEL = personalized_weight_update(MODEL, OTHERS_HIDDEN_WEIGHTS, OTHERS_OUTPUT_WEIGHTS)
+    if (OTHERS_HIDDEN_WEIGHTS == peers - 1) and (OTHERS_OUTPUT_WEIGHTS == peers - 1):
+        MODEL = personalized_weight_update(
+            MODEL, OTHERS_HIDDEN_WEIGHTS, OTHERS_OUTPUT_WEIGHTS
+        )
         OTHERS_HIDDEN_WEIGHTS = []
         OTHERS_OUTPUT_WEIGHTS = []
 
@@ -97,7 +105,7 @@ def get_model_weights_for_collecting():
     """
     return {
         "hidden_weights": MODEL.hidden_weights.tolist(),
-        "output_weights": MODEL.output_weights.tolist()
+        "output_weights": MODEL.output_weights.tolist(),
     }
 
 
@@ -105,5 +113,6 @@ def main():
     global APP
     APP.run(host="localhost", port=6900, debug=True)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
