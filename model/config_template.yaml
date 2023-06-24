@@ -1,0 +1,8 @@
+# path to your part of data
+"data_path": model/data.csv
+
+"learn_rate": 0.01
+
+# personalized weight update coef
+# larger lambda forces weights to conform more to the aggregated ones
+"lambda": 1.
