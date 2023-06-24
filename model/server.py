@@ -84,6 +84,14 @@ def collect_weights():
         OTHERS_HIDDEN_WEIGHTS = []
         OTHERS_OUTPUT_WEIGHTS = []
 
+        # to tell the peer that sent you his weights that he was your last
+        return Response(201)
+
+    return Response(200)
+
+
+@APP.get("/all-peers-sent-weights")
+def all_peers_sent_weights():
     return Response(200)
 
 
