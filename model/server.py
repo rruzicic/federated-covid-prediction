@@ -2,6 +2,7 @@ from flask import Flask
 from flask import Response
 from flask import request
 import numpy as np
+import matplotlib.pyplot as plt
 
 from model.data import load_data
 from model.neural_network import (
@@ -10,6 +11,7 @@ from model.neural_network import (
     personalized_weight_update,
     one_epoch,
 )
+from globals import EPOCHS_PER_REQUEST
 
 DATA, LABELS = load_data()
 MODEL = ModelStruct()
@@ -92,6 +94,11 @@ def collect_weights():
 
 @APP.get("/all-peers-sent-weights")
 def all_peers_sent_weights():
+    """
+    When /collect is requested, return code is either 200 or 201.
+    If it's 201 that means the requester was the last one to send their weights.
+    So this endpoint is the way for the requester to notify the server that he was the last one
+    """
     return Response(200)
 
 
@@ -99,10 +106,12 @@ def all_peers_sent_weights():
 def start_one_epoch():
     """
     Tells the current model to do one epoch of learning
+    Is actually N epochs
     """
     global MODEL, DATA, LABELS
 
-    MODEL = one_epoch(MODEL, DATA, LABELS)
+    for _ in range(EPOCHS_PER_REQUEST):
+        MODEL = one_epoch(MODEL, DATA, LABELS)
     return Response(200)
 
 
@@ -116,8 +125,20 @@ def get_model_weights_for_collecting():
         "output_weights": MODEL.output_weights.tolist(),
     }
 
+@APP.get("/plot-loss")
+def plot_model_loss():
+    """
+    Plots loss of current model and saves it in this dir as LossImage
+    """
+    global MODEL
+    plt.plot(MODEL.loss)
+    plt.savefig("LossImage.png")
+
 
 def main():
+    """
+    main func
+    """
     global APP
     APP.run(host="localhost", port=6900, debug=True)
 
