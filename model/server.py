@@ -4,6 +4,7 @@ from flask import request
 import numpy as np
 import matplotlib.pyplot as plt
 
+from model.globals import EPOCHS_PER_REQUEST
 from model.data import load_data
 from model.neural_network import (
     ModelStruct,
@@ -11,7 +12,6 @@ from model.neural_network import (
     personalized_weight_update,
     one_epoch,
 )
-from globals import EPOCHS_PER_REQUEST
 
 DATA, LABELS = load_data()
 MODEL = ModelStruct()
@@ -26,6 +26,18 @@ def hello_world():
     Health check endpoint
     """
     return "<p>I am alive</p>"
+
+
+@APP.get("/random-weights")
+def get_random_weights():
+    """
+    The leader of the p2p group will get the first weights from this endpoint
+    Then they will send them to the rest of the peers
+    """
+    return {
+        "hidden_weights": np.random.uniform(-1, 1, (DATA.shape[1], 10)).tolist(),
+        "output_weights": np.random.uniform(-1, 1, (10, LABELS.shape[1])).tolist(),
+    }
 
 
 @APP.get("/model")
@@ -106,12 +118,13 @@ def all_peers_sent_weights():
 def start_one_epoch():
     """
     Tells the current model to do one epoch of learning
-    Is actually N epochs
+    Is actually N epochs from config but this name is cooler
     """
     global MODEL, DATA, LABELS
 
     for _ in range(EPOCHS_PER_REQUEST):
         MODEL = one_epoch(MODEL, DATA, LABELS)
+
     return Response(200)
 
 
@@ -124,6 +137,7 @@ def get_model_weights_for_collecting():
         "hidden_weights": MODEL.hidden_weights.tolist(),
         "output_weights": MODEL.output_weights.tolist(),
     }
+
 
 @APP.get("/plot-loss")
 def plot_model_loss():

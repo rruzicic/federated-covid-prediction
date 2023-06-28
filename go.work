@@ -1,5 +1,5 @@
 go 1.20
 
-use ./aggregator
-use ./coordinator
-use ./distributor
+use ./crdt-agent
+use ./gossiper
+use ./http-agent
