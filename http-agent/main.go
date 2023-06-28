@@ -10,7 +10,7 @@ func main() {
 	system := actor.NewActorSystem()
 	props := actor.PropsFromProducer(actors.NewHTTPActor)
 	childPid := system.Root.Spawn(props)
-	system.Root.Send(childPid, &actors.Model{})
+	system.Root.Send(childPid, &actors.PlotLoss{})
 
 	// to never exit
 	_, _ = console.ReadLine()

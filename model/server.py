@@ -147,6 +147,7 @@ def plot_model_loss():
     global MODEL
     plt.plot(MODEL.loss)
     plt.savefig("LossImage.png")
+    return Response(200)
 
 
 def main():
