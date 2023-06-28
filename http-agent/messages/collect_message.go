@@ -8,7 +8,7 @@ import (
 )
 
 func Collect(collectJson []byte) (int, []byte, error) {
-	res, err := http.NewRequest("POST", "localhost:6900/collect", bytes.NewBuffer(collectJson))
+	res, err := http.NewRequest("POST", "http://localhost:6900/collect", bytes.NewBuffer(collectJson))
 	if err != nil {
 		log.Println("Could not post to /collect. Error: ", err)
 		return -1, nil, err

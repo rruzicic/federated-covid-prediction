@@ -6,6 +6,7 @@ require github.com/asynkron/protoactor-go v0.0.0-20230414121700-22ab527f4f7a
 
 require (
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
+	github.com/asynkron/goconsole v0.0.0-20160504192649-bfa12eebf716
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect

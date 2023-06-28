@@ -8,7 +8,7 @@ import (
 )
 
 func InitWeights(weights []byte) ([]byte, error) {
-	res, err := http.NewRequest("POST", "localhost:6900/init", bytes.NewBuffer(weights))
+	res, err := http.NewRequest("POST", "http://localhost:6900/init", bytes.NewBuffer(weights))
 	if err != nil {
 		log.Println("Could not send weights to py server. Error: ", err)
 		return nil, err

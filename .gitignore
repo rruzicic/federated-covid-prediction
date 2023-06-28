@@ -8,6 +8,9 @@ model/*data*.*
 model/*Data*.*
 model/config.yaml
 
+# loss plot
+*.png
+
 
 # python ignore
 __pycache__

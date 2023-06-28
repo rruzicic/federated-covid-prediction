@@ -7,7 +7,7 @@ import (
 )
 
 func AllPeersDone() ([]byte, error) {
-	res, err := http.Get("localhost:6900/all-peers-sent-weights")
+	res, err := http.Get("http://localhost:6900/all-peers-sent-weights")
 	if err != nil {
 		log.Println("Could not send all peers done signal. Error: ", err)
 		return nil, err

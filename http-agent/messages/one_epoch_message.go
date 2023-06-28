@@ -7,7 +7,7 @@ import (
 )
 
 func OneEpoch() ([]byte, error) {
-	res, err := http.Get("localhost:6900/one-epoch")
+	res, err := http.Get("http://localhost:6900/one-epoch")
 	if err != nil {
 		log.Println("Could not send one-epoch signal. Error: ", err)
 		return nil, err

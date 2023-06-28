@@ -8,7 +8,7 @@ import (
 
 func GetRandomWeights() ([]byte, error) {
 	// retval is a byte array of the randomly generated weights
-	res, err := http.Get("localhost:6900/random-weights")
+	res, err := http.Get("http://localhost:6900/random-weights")
 	if err != nil {
 		log.Println("Could not get random weights. Error: ", err)
 		return nil, err

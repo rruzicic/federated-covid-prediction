@@ -10,19 +10,19 @@ import (
 type HTTPActor struct{}
 
 type (
-	getRandomWeights struct{}
-	model            struct{}
-	initWeights      struct{ Weights []byte }
-	collect          struct{ Collect []byte }
-	allPeersDone     struct{}
-	oneEpoch         struct{}
-	weigths          struct{}
-	plotLoss         struct{}
+	GetRandomWeights struct{}
+	Model            struct{}
+	InitWeights      struct{ Weights []byte }
+	Collect          struct{ Collect []byte }
+	AllPeersDone     struct{}
+	OneEpoch         struct{}
+	Weigths          struct{}
+	PlotLoss         struct{}
 )
 
-func (state *HTTPActor) Recieve(context actor.Context) {
+func (state *HTTPActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
-	case *getRandomWeights:
+	case *GetRandomWeights:
 		{
 			// retval from this to be later used to communicate with gossiper agent
 			_, err := messages.GetRandomWeights()
@@ -32,7 +32,7 @@ func (state *HTTPActor) Recieve(context actor.Context) {
 			}
 			break
 		}
-	case *model:
+	case *Model:
 		{
 			_, err := messages.Model()
 			if err != nil {
@@ -41,7 +41,7 @@ func (state *HTTPActor) Recieve(context actor.Context) {
 			}
 			break
 		}
-	case *initWeights:
+	case *InitWeights:
 		{
 			_, err := messages.InitWeights(msg.Weights)
 			if err != nil {
@@ -50,7 +50,7 @@ func (state *HTTPActor) Recieve(context actor.Context) {
 			}
 			break
 		}
-	case *collect:
+	case *Collect:
 		{
 			statusCode, _, err := messages.Collect(msg.Collect)
 			if err != nil {
@@ -67,7 +67,7 @@ func (state *HTTPActor) Recieve(context actor.Context) {
 			}
 			break
 		}
-	case *allPeersDone:
+	case *AllPeersDone:
 		{
 			_, err := messages.AllPeersDone()
 			if err != nil {
@@ -76,7 +76,7 @@ func (state *HTTPActor) Recieve(context actor.Context) {
 			}
 			break
 		}
-	case *oneEpoch:
+	case *OneEpoch:
 		{
 			_, err := messages.OneEpoch()
 			if err != nil {
@@ -85,7 +85,7 @@ func (state *HTTPActor) Recieve(context actor.Context) {
 			}
 			break
 		}
-	case *weigths:
+	case *Weigths:
 		{
 			_, err := messages.Weights()
 			if err != nil {
@@ -94,7 +94,7 @@ func (state *HTTPActor) Recieve(context actor.Context) {
 			}
 			break
 		}
-	case *plotLoss:
+	case *PlotLoss:
 		{
 			_, err := messages.PlotLoss()
 			if err != nil {
@@ -103,7 +103,9 @@ func (state *HTTPActor) Recieve(context actor.Context) {
 			}
 			break
 		}
-	default:
-		log.Panic("Got message that can't be parsed. Message: ", msg)
 	}
+}
+
+func NewHTTPActor() actor.Actor {
+	return &HTTPActor{}
 }

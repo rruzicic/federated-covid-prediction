@@ -7,7 +7,7 @@ import (
 )
 
 func Weights() ([]byte, error) {
-	res, err := http.Get("localhost:6900/weights")
+	res, err := http.Get("http://localhost:6900/weights")
 	if err != nil {
 		log.Println("Could not get weights. Error: ", err)
 		return nil, err

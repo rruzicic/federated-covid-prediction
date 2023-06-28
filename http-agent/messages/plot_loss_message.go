@@ -7,7 +7,7 @@ import (
 )
 
 func PlotLoss() ([]byte, error) {
-	res, err := http.Get("localhost:6900/plot-loss")
+	res, err := http.Get("http://localhost:6900/plot-loss")
 	if err != nil {
 		log.Println("Could not send plot loss singal. Error: ", err)
 		return nil, err
