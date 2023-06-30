@@ -4,7 +4,7 @@ from flask import request
 import numpy as np
 import matplotlib.pyplot as plt
 
-from model.globals import EPOCHS_PER_REQUEST
+from model.globals import EPOCHS_PER_REQUEST, TOTAL_EPOCHS
 from model.data import load_data
 from model.neural_network import (
     ModelStruct,
@@ -18,6 +18,7 @@ MODEL = ModelStruct()
 APP = Flask(__name__)
 OTHERS_HIDDEN_WEIGHTS = []
 OTHERS_OUTPUT_WEIGHTS = []
+CURRENT_EPOCH = 0
 
 
 @APP.get("/")
@@ -120,10 +121,14 @@ def start_one_epoch():
     Tells the current model to do one epoch of learning
     Is actually N epochs from config but this name is cooler
     """
-    global MODEL, DATA, LABELS
+    global MODEL, DATA, LABELS, CURRENT_EPOCH
 
     for _ in range(EPOCHS_PER_REQUEST):
         MODEL = one_epoch(MODEL, DATA, LABELS)
+        CURRENT_EPOCH += EPOCHS_PER_REQUEST
+
+    if CURRENT_EPOCH >= TOTAL_EPOCHS:
+        return Response(201)
 
     return Response(200)
 

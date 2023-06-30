@@ -9,3 +9,6 @@
 
 # epochs per request
 "epochs_per_request": 10
+
+# total number of epochs to be done
+"total_epochs": 100
