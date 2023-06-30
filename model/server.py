@@ -1,6 +1,10 @@
 from flask import Flask
 from flask import Response
 from flask import request
+
+import pickle
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -144,14 +148,29 @@ def get_model_weights_for_collecting():
     }
 
 
-@APP.get("/plot-loss")
+@APP.get("/exit")
 def plot_model_loss():
     """
     Plots loss of current model and saves it in this dir as LossImage
     """
     global MODEL
+
+    # mkdir if there is none
+    if not os.path.exists(os.path.join("model", "model_info")):
+        os.mkdir(os.path.join("model", "model_info"))
+
+    # save model loss
     plt.plot(MODEL.loss)
-    plt.savefig("LossImage.png")
+    plt.savefig(os.path.join("model", "model_info"", LossImage.png"))
+
+    # save model weights in pickle
+    weights = {
+        "hidden_weights": MODEL.hidden_weights.tolist(),
+        "output_weights": MODEL.output_weights.tolist(),
+    }
+    with open(os.path.join("model", "model_info", "model_weights.pkl"), "wb") as f:
+        pickle.dump(weights, f, protocol=pickle.HIGHEST_PROTOCOL)
+
     return Response(200)
 
 

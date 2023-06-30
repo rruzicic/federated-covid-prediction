@@ -11,6 +11,10 @@ model/config.yaml
 # loss plot
 *.png
 
+# leave out "personal" model info when exiting
+# is used to store weights and loss image
+model/model_info/*
+
 
 # python ignore
 __pycache__
