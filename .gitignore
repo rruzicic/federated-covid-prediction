@@ -15,6 +15,9 @@ model/config.yaml
 # is used to store weights and loss image
 model/model_info/*
 
+# ignore your personal coordinator pid table
+coordinator_pids.json
+
 
 # python ignore
 __pycache__

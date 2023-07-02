@@ -4,3 +4,4 @@ use ./coordinator
 use ./gossiper
 use ./http-agent
 use ./grpc
+use ./peer
