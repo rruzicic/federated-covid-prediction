@@ -5,6 +5,7 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/gin-gonic/gin"
+	"github.com/rruzicic/federated-covid-prediction/peer/services"
 )
 
 func HandleCoordinatorPID(ctx *gin.Context) {
@@ -14,4 +15,6 @@ func HandleCoordinatorPID(ctx *gin.Context) {
 		ctx.JSON(400, "Bad Request")
 		return
 	}
+
+	services.HandleCoordinatorPID(coordinatorPID)
 }

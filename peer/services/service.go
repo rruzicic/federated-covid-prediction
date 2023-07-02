@@ -9,6 +9,10 @@ import (
 )
 
 func LoadCoordinatorPIDS() ([]actor.PID, error) {
+	if _, err := os.Stat("coordinator_pids.json"); err != nil {
+		return []actor.PID{}, nil
+	}
+
 	jsonPids, err := os.ReadFile("coordinator_pids.json")
 	if err != nil {
 		log.Println("Could not read from coordinator_pids. Error: ", err)
