@@ -1,5 +1,5 @@
 go 1.20
 
-use ./crdt-agent
+use ./coordinator
 use ./gossiper
 use ./http-agent
