@@ -16,7 +16,7 @@ type Message struct{} // default message
 type ( // messages that are sent from other gossipers that end up in the coordinator
 	GossipedWeights  struct{}
 	CollectedWeights struct{}
-	AllActorsDone    struct{}
+	AllPeersDone     struct{}
 	PeerExited       struct{}
 )
 
@@ -83,19 +83,46 @@ func (state *Coordinator) Init(ctx actor.Context) {
 }
 
 func (state *Coordinator) OneEpoch(ctx actor.Context) {
-	// if 200
-	state.behavior.Become(state.Collect)
+	switch ctx.Message().(type) {
+	case *Message:
+		log.Println("Coordinator is in state OneEpoch. Received &Message")
 
-	// if 201
-	state.behavior.Become(state.Exit)
+		// spawn http actor send one epoch signal, request future result for 200 or 201
+
+		// if 200
+		state.behavior.Become(state.Collect)
+		ctx.Send(ctx.Self(), &Message{})
+
+		// if 201
+		state.behavior.Become(state.Exit)
+		ctx.Send(ctx.Self(), &Message{})
+
+	case *PeerExited:
+		log.Println("Coordinator is in state OneEpoch. Received &PeerExit")
+	}
 }
 
 func (state *Coordinator) Collect(ctx actor.Context) {
-	state.behavior.Become(state.OneEpoch)
+	switch ctx.Message().(type) {
+	case *Message:
+		log.Println("Coordinator is in state Collect. Received &Message")
+
+	case *AllPeersDone:
+		log.Println("Coordinator is in state Collect. Received &AllPeersDone")
+
+		state.behavior.Become(state.OneEpoch)
+		ctx.Send(ctx.Self(), &Message{})
+
+	case *PeerExited:
+		log.Println("Coordinator is in state Collect. Received &PeerExit")
+	}
 }
 
 func (state *Coordinator) Exit(ctx actor.Context) {
-
+	switch ctx.Message().(type) {
+	case *Message:
+		log.Println("Coordinator is in state Exit. Received &Message")
+	}
 }
 
 func NewCoordinator() actor.Actor {
