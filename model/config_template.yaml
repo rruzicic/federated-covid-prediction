@@ -6,3 +6,9 @@
 # personalized weight update coef
 # larger lambda forces weights to conform more to the aggregated ones
 "lambda": 1.
+
+# epochs per request
+"epochs_per_request": 10
+
+# total number of epochs to be done
+"total_epochs": 100

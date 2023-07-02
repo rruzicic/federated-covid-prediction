@@ -1,3 +1,3 @@
-module github.com/rruzicic/federated-covid-prediction/coordinator
+module coordinator
 
 go 1.20
