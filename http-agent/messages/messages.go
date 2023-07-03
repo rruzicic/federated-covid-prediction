@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -27,6 +28,12 @@ type ModelResponse struct {
 	Output_weights [][]float32 `json:"output_weights"`
 	Output         []float32   `json:"output"`
 	Loss           []float32   `json:"loss"`
+}
+
+type CollectResponse struct {
+	Hidden_weights [][]float32 `json:"hidden_weights"`
+	Output_weights [][]float32 `json:"output_weights"`
+	Peers          int         `json:"peers"`
 }
 
 func HelloWorld() error {
@@ -130,4 +137,46 @@ func GetWeights() (WeightsResponse, error) {
 	}
 
 	return weightsResponse, nil
+}
+
+func Exit() (string, error) {
+	res, err := http.Get(pyServerAdress + "/exit")
+	if err != nil {
+		log.Println("Could not send exit signal. Error: ", err)
+		return res.Status, err
+	}
+
+	return res.Status, nil
+}
+
+func InitWeights(weights WeightsResponse) (string, error) {
+	reqBody, err := json.Marshal(weights)
+	if err != nil {
+		log.Println("Could not marshal WeightsResponse struct")
+		return "", err
+	}
+
+	res, err := http.NewRequest("POST", pyServerAdress+"/init", bytes.NewReader(reqBody))
+	if err != nil {
+		log.Println("Could not send weights to py server. Error: ", err)
+		return res.Response.Status, err
+	}
+
+	return res.Response.Status, nil
+}
+
+func CollectWeights(collectResponse CollectResponse) (string, error) {
+	reqBody, err := json.Marshal(collectResponse)
+	if err != nil {
+		log.Println("Could not marshal CollectResponse struct")
+		return "", err
+	}
+
+	res, err := http.NewRequest("POST", pyServerAdress+"/collect", bytes.NewReader(reqBody))
+	if err != nil {
+		log.Println("Could not send collect message to py server. Error: ", err)
+		return res.Response.Status, err
+	}
+
+	return res.Response.Status, nil
 }
