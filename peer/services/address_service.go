@@ -7,36 +7,46 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func LoadPeerAddresses() ([]string, error) {
+type AddressAndHost struct {
+	Address string `yaml:"address"`
+	Port    int    `yaml:"port"`
+}
+
+type YamlData struct {
+	You   AddressAndHost   `yaml:"you"`
+	Peers []AddressAndHost `yaml:"peers"`
+}
+
+func LoadAddresses() (*YamlData, error) {
 	if _, err := os.Stat("peer_addresses.yaml"); err != nil {
-		return []string{}, nil
+		return &YamlData{}, nil
 	}
 
-	peersFile, err := os.ReadFile("peer_addresses.yaml")
+	addressesFile, err := os.ReadFile("peer_addresses.yaml")
 	if err != nil {
 		log.Println("Could not read peer addresses file. Error: ", err.Error())
 		return nil, err
 	}
 
-	var peerAddresses []string
-	if err := yaml.Unmarshal(peersFile, peerAddresses); err != nil {
+	var yamlAddresses YamlData
+	if err := yaml.Unmarshal(addressesFile, &yamlAddresses); err != nil {
 		log.Println("Could not unmarshall addresses")
 		return nil, err
 	}
 
-	return peerAddresses, nil
+	return &yamlAddresses, nil
 }
 
-func AddPeerAddress(address string) error {
-	peers, err := LoadPeerAddresses()
+func AddPeerAddress(address AddressAndHost) error {
+	addresses, err := LoadAddresses()
 	if err != nil {
 		log.Println("Could not load all peers. Error: ", err.Error())
 		return err
 	}
 
-	peers = append(peers, address)
+	addresses.Peers = append(addresses.Peers, address)
 
-	yamlString, err := yaml.Marshal(peers)
+	yamlString, err := yaml.Marshal(addresses)
 	if err != nil {
 		log.Println("Could not marshall new peer. Error: ", err.Error())
 		return err
@@ -50,22 +60,21 @@ func AddPeerAddress(address string) error {
 	return nil
 }
 
-func RemovePeerAddress(address string) error {
-	peers, err := LoadPeerAddresses()
+func RemovePeerAddress(address AddressAndHost) error {
+	addresses, err := LoadAddresses()
 	if err != nil {
 		log.Println("Could not load all peers. Error: ", err.Error())
 		return err
 	}
 
-	var newPeers []string
-	for idx, peer := range peers {
+	for idx, peer := range addresses.Peers {
 		if peer == address {
-			newPeers = append(peers[:idx], peers[idx+1:]...)
+			addresses.Peers = append(addresses.Peers[:idx], addresses.Peers[idx+1:]...)
 			break
 		}
 	}
 
-	yamlString, err := yaml.Marshal(newPeers)
+	yamlString, err := yaml.Marshal(addresses)
 	if err != nil {
 		log.Println("Could not marshall new peer list. Error: ", err.Error())
 		return err
@@ -80,11 +89,21 @@ func RemovePeerAddress(address string) error {
 }
 
 func NumberOfPeers() (int, error) {
-	peers, err := LoadPeerAddresses()
+	addresses, err := LoadAddresses()
 	if err != nil {
 		log.Println("Could not load peer addresses. Error: ", err)
 		return -1, err
 	}
 
-	return len(peers), nil
+	return len(addresses.Peers), nil
+}
+
+func GetYourAddress() (*AddressAndHost, error) {
+	addresses, err := LoadAddresses()
+	if err != nil {
+		log.Println("Could not load all peers. Error: ", err.Error())
+		return nil, err
+	}
+
+	return &addresses.You, nil
 }

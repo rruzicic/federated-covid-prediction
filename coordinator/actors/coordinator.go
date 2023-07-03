@@ -4,7 +4,9 @@ import (
 	"log"
 
 	"github.com/asynkron/protoactor-go/actor"
+	"github.com/asynkron/protoactor-go/remote"
 	gossip_actors "github.com/rruzicic/federated-covid-prediction/gossiper/actors"
+	"github.com/rruzicic/federated-covid-prediction/peer/services"
 )
 
 type Coordinator struct {
@@ -14,10 +16,14 @@ type Coordinator struct {
 type Message struct{} // default message
 
 type ( // messages that are sent from other gossipers that end up in the coordinator
+	BecomeLeader     struct{}
 	GossipedWeights  struct{}
 	CollectedWeights struct{}
 	AllPeersDone     struct{}
-	PeerExited       struct{}
+	PeerExited       struct {
+		Address services.AddressAndHost // GetYourAddress from peer/services/address_service.go
+		PID     actor.PID               // since gossiper will be sending this. this will be available from ctx.Parent()
+	}
 )
 
 func (state *Coordinator) Receive(ctx actor.Context) {
@@ -26,7 +32,7 @@ func (state *Coordinator) Receive(ctx actor.Context) {
 
 func (state *Coordinator) Startup(ctx actor.Context) {
 	// explicitly set state from go program itself
-	switch ctx.Message().(type) {
+	switch msg := ctx.Message().(type) {
 	case *Message:
 		log.Println("Coordinator in state Startup. Received &Message")
 
@@ -37,16 +43,27 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 
 		state.behavior.Become(state.Init)
 
+	case *BecomeLeader:
+		log.Println("Coordinator in state Startup. Received &Message")
+
+		gossiperProps := actor.PropsFromProducer(gossip_actors.NewGossiper)
+		gossiperPid := ctx.Spawn(gossiperProps)
+
+		ctx.Send(gossiperPid, &gossip_actors.BroadcastCoordinatorPID{})
+
+		state.behavior.Become(state.InitLeader)
+
 	case *PeerExited:
 		log.Println("Coordinator in state Startup. Received &PeerExit")
 
-		// handle exit by calling peer.ip_service and peer.pid_service to remove them
+		services.RemovePeerAddress(msg.Address)
+		services.RemoveCoordinatorPID(msg.PID)
 	}
 }
 
 func (state *Coordinator) InitLeader(ctx actor.Context) {
 	// explicitly set state from go program itself
-	switch ctx.Message().(type) {
+	switch msg := ctx.Message().(type) {
 	case *Message:
 		log.Println("Coordinator is in state InitLeader. Received &Message")
 
@@ -64,11 +81,14 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 
 	case *PeerExited:
 		log.Println("Coordinator is in state InitLeader. Received &PeerExit")
+
+		services.RemovePeerAddress(msg.Address)
+		services.RemoveCoordinatorPID(msg.PID)
 	}
 }
 
 func (state *Coordinator) Init(ctx actor.Context) {
-	switch ctx.Message().(type) {
+	switch msg := ctx.Message().(type) {
 	case *GossipedWeights:
 		log.Println("Coordinator is in state Init")
 
@@ -79,11 +99,14 @@ func (state *Coordinator) Init(ctx actor.Context) {
 
 	case *PeerExited:
 		log.Println("Coordinator is in state Init. Received &PeerExit")
+
+		services.RemovePeerAddress(msg.Address)
+		services.RemoveCoordinatorPID(msg.PID)
 	}
 }
 
 func (state *Coordinator) OneEpoch(ctx actor.Context) {
-	switch ctx.Message().(type) {
+	switch msg := ctx.Message().(type) {
 	case *Message:
 		log.Println("Coordinator is in state OneEpoch. Received &Message")
 
@@ -99,11 +122,14 @@ func (state *Coordinator) OneEpoch(ctx actor.Context) {
 
 	case *PeerExited:
 		log.Println("Coordinator is in state OneEpoch. Received &PeerExit")
+
+		services.RemovePeerAddress(msg.Address)
+		services.RemoveCoordinatorPID(msg.PID)
 	}
 }
 
 func (state *Coordinator) Collect(ctx actor.Context) {
-	switch ctx.Message().(type) {
+	switch msg := ctx.Message().(type) {
 	case *Message:
 		log.Println("Coordinator is in state Collect. Received &Message")
 
@@ -115,6 +141,9 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 
 	case *PeerExited:
 		log.Println("Coordinator is in state Collect. Received &PeerExit")
+
+		services.RemovePeerAddress(msg.Address)
+		services.RemoveCoordinatorPID(msg.PID)
 	}
 }
 
@@ -133,10 +162,36 @@ func NewCoordinator() actor.Actor {
 	return coord
 }
 
+func setupRemote() (remote.Remote, actor.RootContext) {
+	yourAddress, _ := services.GetYourAddress()
+
+	sys := actor.NewActorSystem()
+	rmtCfg := remote.Configure(yourAddress.Address, yourAddress.Port)
+	remoter := remote.NewRemote(sys, rmtCfg)
+
+	return *remoter, *sys.Root
+}
+
 func SetupCoordinator() {
 	// starts coordinator, agent system and supervision
+
+	remoter, ctx := setupRemote()
+	remoter.Start()
+
+	supervision := actor.NewOneForOneStrategy(10, 1000, actor.DefaultDecider) // possibly implmenet your decider like in coordinator_mock
+	props := actor.PropsFromProducer(NewCoordinator, actor.WithSupervisor(supervision))
+	pid := ctx.Spawn(props)
+	ctx.Send(pid, &Message{})
 }
 
 func SetupLeaderCoordinator() {
 	// starts coordinator, agent system and supervision except after sending the first message explicity changes state to InitLeader
+
+	remoter, ctx := setupRemote()
+	remoter.Start()
+
+	supervision := actor.NewOneForOneStrategy(10, 1000, actor.DefaultDecider) // possibly implmenet your decider like in coordinator_mock
+	props := actor.PropsFromProducer(NewCoordinator, actor.WithSupervisor(supervision))
+	pid := ctx.Spawn(props)
+	ctx.Send(pid, &BecomeLeader{})
 }
