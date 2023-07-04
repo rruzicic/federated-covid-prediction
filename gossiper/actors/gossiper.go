@@ -25,6 +25,10 @@ type (
 		CoordinatorPID     actor.PID
 		YourAddressAndHost services.AddressAndHost
 	}
+	Collect struct {
+		Weights http_messages.WeightsResponse
+		Peers   int
+	}
 )
 
 func (state *Gossiper) Receive(ctx actor.Context) {
@@ -66,6 +70,23 @@ func (state *Gossiper) Receive(ctx actor.Context) {
 
 		for _, coordinatorPid := range coordinators {
 			ctx.Send(&coordinatorPid, grpcWeights)
+		}
+
+	case *Collect:
+		// make grpc message from this one
+		grpcCollect := grpc_message.GRPCCollect{
+			Weights: grpctransformations.MessageWeightsToGRPCWeights(msg.Weights),
+			Peers:   int32(msg.Peers),
+		}
+
+		// send to all peers' coordinators
+		coordinators, err := services.LoadCoordinatorPIDS()
+		if err != nil {
+			log.Panic("Could not get coordinator pids. Error: ", err.Error())
+		}
+
+		for _, coordinatorPid := range coordinators {
+			ctx.Send(&coordinatorPid, &grpcCollect)
 		}
 
 	case *Exit:

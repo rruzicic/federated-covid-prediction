@@ -13,3 +13,10 @@ message GRPCExit {
   string address = 2;
   int32 port = 3;
 }
+
+message GRPCCollect {
+  GRPCWeights weights = 1;
+  int32 peers = 2;
+}
+
+message GRPCAllPeersDone {}
