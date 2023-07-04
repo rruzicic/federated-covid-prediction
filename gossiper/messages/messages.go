@@ -9,6 +9,9 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/rruzicic/federated-covid-prediction/peer/services"
+
+	grpctransformations "github.com/rruzicic/federated-covid-prediction/gossiper/grpc_transformations"
+	http_messages "github.com/rruzicic/federated-covid-prediction/http-agent/messages"
 )
 
 func BroadcastCoordinatorPIDMessage(ctx actor.Context) error {
@@ -35,6 +38,22 @@ func BroadcastCoordinatorPIDMessage(ctx actor.Context) error {
 			log.Println("Could not send request to peer at ", address)
 			return err
 		}
+	}
+
+	return nil
+}
+
+func GossipWeightsMessage(weights http_messages.WeightsResponse, ctx actor.Context) error {
+	coordinators, err := services.LoadCoordinatorPIDS()
+	if err != nil {
+		log.Println("Could not get coordinator pids. Error: ", err.Error())
+		return err
+	}
+
+	grpcWeights := grpctransformations.MessageWeightsToGRPCWeights(weights)
+
+	for _, coordinatorPid := range coordinators {
+		ctx.Send(&coordinatorPid, grpcWeights)
 	}
 
 	return nil

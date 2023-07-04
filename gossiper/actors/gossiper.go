@@ -5,13 +5,16 @@ import (
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/rruzicic/federated-covid-prediction/gossiper/messages"
+	http_messages "github.com/rruzicic/federated-covid-prediction/http-agent/messages"
 )
 
 type Gossiper struct{}
 
 type (
 	BroadcastCoordinatorPID struct{}
-	GossipWeights           struct{}
+	GossipWeights           struct {
+		Weights http_messages.WeightsResponse
+	}
 )
 
 func (state *Gossiper) Receive(ctx actor.Context) {
@@ -19,6 +22,10 @@ func (state *Gossiper) Receive(ctx actor.Context) {
 	case *BroadcastCoordinatorPID:
 		log.Println("Broadcasting coordinators pid. PID: ", ctx.Parent())
 		messages.BroadcastCoordinatorPIDMessage(ctx)
+
+	case *GossipWeights:
+		log.Println("Gossiping weights received from py server.")
+		messages.GossipWeightsMessage(msg.Weights, ctx)
 	}
 }
 

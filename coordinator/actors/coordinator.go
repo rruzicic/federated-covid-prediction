@@ -6,6 +6,8 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
 	gossip_actors "github.com/rruzicic/federated-covid-prediction/gossiper/actors"
+	grpctransformations "github.com/rruzicic/federated-covid-prediction/gossiper/grpc_transformations"
+	grpc_messages "github.com/rruzicic/federated-covid-prediction/grpc"
 	"github.com/rruzicic/federated-covid-prediction/peer/services"
 )
 
@@ -74,7 +76,7 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 
 		gossiperProps := actor.PropsFromProducer(gossip_actors.NewGossiper)
 		gossiperPid := ctx.Spawn(gossiperProps)
-		ctx.Send(gossiperPid, &gossip_actors.GossipWeights{})
+		ctx.Send(gossiperPid, &gossip_actors.GossipWeights{}) // fill with res from http agent
 
 		state.behavior.Become(state.OneEpoch)
 		ctx.Send(ctx.Self(), &Message{})
@@ -89,8 +91,9 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 
 func (state *Coordinator) Init(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *GossipedWeights:
+	case *grpc_messages.GRPCWeights:
 		log.Println("Coordinator is in state Init")
+		messageWeights := grpctransformations.GRPCWeightsToMessageWeights(msg)
 
 		// send weights to http agent wait for 200 before changing state
 
