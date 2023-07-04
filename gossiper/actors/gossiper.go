@@ -1,6 +1,11 @@
 package actors
 
-import "github.com/asynkron/protoactor-go/actor"
+import (
+	"log"
+
+	"github.com/asynkron/protoactor-go/actor"
+	"github.com/rruzicic/federated-covid-prediction/gossiper/messages"
+)
 
 type Gossiper struct{}
 
@@ -10,7 +15,11 @@ type (
 )
 
 func (state *Gossiper) Receive(ctx actor.Context) {
-
+	switch msg := ctx.Message().(type) {
+	case *BroadcastCoordinatorPID:
+		log.Println("Broadcasting coordinators pid. PID: ", ctx.Parent())
+		messages.BroadcastCoordinatorPIDMessage(ctx)
+	}
 }
 
 func NewGossiper() actor.Actor {
