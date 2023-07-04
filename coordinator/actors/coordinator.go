@@ -6,6 +6,9 @@ import (
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
 	gossip_actors "github.com/rruzicic/federated-covid-prediction/gossiper/actors"
+	grpctransformations "github.com/rruzicic/federated-covid-prediction/gossiper/grpc_transformations"
+	grpc_messages "github.com/rruzicic/federated-covid-prediction/grpc"
+	http_messages "github.com/rruzicic/federated-covid-prediction/http-agent/messages"
 	"github.com/rruzicic/federated-covid-prediction/peer/services"
 )
 
@@ -19,11 +22,6 @@ type ( // messages that are sent from other gossipers that end up in the coordin
 	BecomeLeader     struct{}
 	GossipedWeights  struct{}
 	CollectedWeights struct{}
-	AllPeersDone     struct{}
-	PeerExited       struct {
-		Address services.AddressAndHost // GetYourAddress from peer/services/address_service.go
-		PID     actor.PID               // since gossiper will be sending this. this will be available from ctx.Parent()
-	}
 )
 
 func (state *Coordinator) Receive(ctx actor.Context) {
@@ -53,11 +51,14 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 
 		state.behavior.Become(state.InitLeader)
 
-	case *PeerExited:
+	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator in state Startup. Received &PeerExit")
 
-		services.RemovePeerAddress(msg.Address)
-		services.RemoveCoordinatorPID(msg.PID)
+		services.RemovePeerAddress(services.AddressAndHost{
+			Address: msg.Address,
+			Port:    int(msg.Port),
+		})
+		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
 	}
 }
 
@@ -68,40 +69,50 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 		log.Println("Coordinator is in state InitLeader. Received &Message")
 
 		// get random weights using http actor. future request them back here
+		messageWeights := http_messages.WeightsResponse{}
 
 		// init weights using http actor. possibly future request 200 back here
 		// can use props and pid from http actor from above
 
 		gossiperProps := actor.PropsFromProducer(gossip_actors.NewGossiper)
 		gossiperPid := ctx.Spawn(gossiperProps)
-		ctx.Send(gossiperPid, &gossip_actors.GossipWeights{})
+		ctx.Send(gossiperPid, &gossip_actors.GossipWeights{
+			Weights: messageWeights,
+		})
 
 		state.behavior.Become(state.OneEpoch)
 		ctx.Send(ctx.Self(), &Message{})
 
-	case *PeerExited:
+	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator is in state InitLeader. Received &PeerExit")
 
-		services.RemovePeerAddress(msg.Address)
-		services.RemoveCoordinatorPID(msg.PID)
+		services.RemovePeerAddress(services.AddressAndHost{
+			Address: msg.Address,
+			Port:    int(msg.Port),
+		})
+		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
 	}
 }
 
 func (state *Coordinator) Init(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
-	case *GossipedWeights:
+	case *grpc_messages.GRPCWeights:
 		log.Println("Coordinator is in state Init")
+		messageWeights := grpctransformations.GRPCWeightsToMessageWeights(msg)
 
 		// send weights to http agent wait for 200 before changing state
 
 		state.behavior.Become(state.OneEpoch)
 		ctx.Send(ctx.Self(), &Message{})
 
-	case *PeerExited:
+	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator is in state Init. Received &PeerExit")
 
-		services.RemovePeerAddress(msg.Address)
-		services.RemoveCoordinatorPID(msg.PID)
+		services.RemovePeerAddress(services.AddressAndHost{
+			Address: msg.Address,
+			Port:    int(msg.Port),
+		})
+		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
 	}
 }
 
@@ -120,11 +131,14 @@ func (state *Coordinator) OneEpoch(ctx actor.Context) {
 		state.behavior.Become(state.Exit)
 		ctx.Send(ctx.Self(), &Message{})
 
-	case *PeerExited:
+	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator is in state OneEpoch. Received &PeerExit")
 
-		services.RemovePeerAddress(msg.Address)
-		services.RemoveCoordinatorPID(msg.PID)
+		services.RemovePeerAddress(services.AddressAndHost{
+			Address: msg.Address,
+			Port:    int(msg.Port),
+		})
+		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
 	}
 }
 
@@ -132,18 +146,46 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *Message:
 		log.Println("Coordinator is in state Collect. Received &Message")
+		// get weights from http actor
+		messageWeights := http_messages.WeightsResponse{}
 
-	case *AllPeersDone:
+		// prepare message to for gossiper
+		peers, _ := services.NumberOfPeers()
+		messageCollect := gossip_actors.Collect{
+			Weights: messageWeights,
+			Peers:   peers,
+		}
+
+		// spawn gossiper with those weights and send the rpc request with rpc collect weights
+		gossiperProps := actor.PropsFromProducer(gossip_actors.NewGossiper)
+		gossiperPid := ctx.Spawn(gossiperProps)
+		ctx.Send(gossiperPid, &messageCollect)
+
+	case *grpc_messages.GRPCCollect:
+		// unpack grpc message
+		messageWeights := grpctransformations.GRPCWeightsToMessageWeights(msg.Weights)
+		messageCollect := http_messages.CollectResponse{
+			Hidden_weights: messageWeights.Hidden_weights,
+			Output_weights: messageWeights.Output_weights,
+			Peers:          int(msg.Peers),
+		}
+
+		// send it to http agent
+
+	case *grpc_messages.GRPCAllPeersDone:
 		log.Println("Coordinator is in state Collect. Received &AllPeersDone")
 
 		state.behavior.Become(state.OneEpoch)
 		ctx.Send(ctx.Self(), &Message{})
 
-	case *PeerExited:
+	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator is in state Collect. Received &PeerExit")
 
-		services.RemovePeerAddress(msg.Address)
-		services.RemoveCoordinatorPID(msg.PID)
+		services.RemovePeerAddress(services.AddressAndHost{
+			Address: msg.Address,
+			Port:    int(msg.Port),
+		})
+		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
 	}
 }
 
@@ -151,6 +193,15 @@ func (state *Coordinator) Exit(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case *Message:
 		log.Println("Coordinator is in state Exit. Received &Message")
+
+		gossiperProps := actor.PropsFromProducer(gossip_actors.NewGossiper)
+		gossiperPid := ctx.Spawn(gossiperProps)
+
+		yourAddress, _ := services.GetYourAddress()
+		ctx.Send(gossiperPid, &gossip_actors.Exit{
+			CoordinatorPID:     *ctx.Self(),
+			YourAddressAndHost: *yourAddress,
+		})
 	}
 }
 

@@ -107,3 +107,13 @@ func GetYourAddress() (*AddressAndHost, error) {
 
 	return &addresses.You, nil
 }
+
+func GetPeerAddresses() ([]AddressAndHost, error) {
+	addresses, err := LoadAddresses()
+	if err != nil {
+		log.Println("Could not load all peers. Error: ", err.Error())
+		return nil, err
+	}
+
+	return addresses.Peers, nil
+}
