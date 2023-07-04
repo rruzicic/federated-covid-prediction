@@ -53,26 +53,26 @@ func HelloWorld() error {
 	return nil
 }
 
-func GetRandomWeights() (WeightsResponse, error) {
+func GetRandomWeights() (WeightsResponse, int, error) {
 	var weightsResponse WeightsResponse
 	res, err := http.Get(pyServerAdress + "/random-weights")
 	if err != nil {
 		log.Println("Could not get random weights")
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Println("Could not read the response body")
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
 	if err := json.Unmarshal(body, &weightsResponse); err != nil {
 		log.Println("Could not unmarshall response body into response structure. Error: ", err.Error())
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
-	return weightsResponse, nil
+	return weightsResponse, res.StatusCode, nil
 }
 
 func GetModel() (ModelResponse, error) {
@@ -97,86 +97,86 @@ func GetModel() (ModelResponse, error) {
 	return modelResponse, nil
 }
 
-func AllPeersDone() (string, error) {
+func AllPeersDone() (int, error) {
 	res, err := http.Get(pyServerAdress + "/all-peers-sent-weights")
 	if err != nil {
 		log.Println("Could not send all peers done signal. Error: ", err)
-		return res.Status, err
+		return res.StatusCode, err
 	}
 
-	return res.Status, nil
+	return res.StatusCode, nil
 }
 
-func DoOneEpoch() (string, error) {
+func DoOneEpoch() (int, error) {
 	res, err := http.Get(pyServerAdress + "/one-epoch")
 	if err != nil {
 		log.Println("Could not send one epoch done signal. Error: ", err)
-		return res.Status, err
+		return res.StatusCode, err
 	}
 
-	return res.Status, nil
+	return res.StatusCode, nil
 }
 
-func GetWeights() (WeightsResponse, error) {
+func GetWeights() (WeightsResponse, int, error) {
 	var weightsResponse WeightsResponse
 	res, err := http.Get(pyServerAdress + "/weights")
 	if err != nil {
 		log.Println("Could not get weights")
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Println("Could not read the response body")
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
 	if err := json.Unmarshal(body, &weightsResponse); err != nil {
 		log.Println("Could not unmarshall response body into response structure. Error: ", err.Error())
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
-	return weightsResponse, nil
+	return weightsResponse, res.StatusCode, nil
 }
 
-func Exit() (string, error) {
+func Exit() (int, error) {
 	res, err := http.Get(pyServerAdress + "/exit")
 	if err != nil {
 		log.Println("Could not send exit signal. Error: ", err)
-		return res.Status, err
+		return res.StatusCode, err
 	}
 
-	return res.Status, nil
+	return res.StatusCode, nil
 }
 
-func InitWeights(weights WeightsResponse) (string, error) {
+func InitWeights(weights WeightsResponse) (int, error) {
 	reqBody, err := json.Marshal(weights)
 	if err != nil {
 		log.Println("Could not marshal WeightsResponse struct")
-		return "", err
+		return 500, err
 	}
 
 	res, err := http.NewRequest("POST", pyServerAdress+"/init", bytes.NewReader(reqBody))
 	if err != nil {
 		log.Println("Could not send weights to py server. Error: ", err)
-		return res.Response.Status, err
+		return res.Response.StatusCode, err
 	}
 
-	return res.Response.Status, nil
+	return res.Response.StatusCode, nil
 }
 
-func CollectWeights(collectResponse CollectResponse) (string, error) {
+func CollectWeights(collectResponse CollectResponse) (int, error) {
 	reqBody, err := json.Marshal(collectResponse)
 	if err != nil {
 		log.Println("Could not marshal CollectResponse struct")
-		return "", err
+		return 500, err
 	}
 
 	res, err := http.NewRequest("POST", pyServerAdress+"/collect", bytes.NewReader(reqBody))
 	if err != nil {
 		log.Println("Could not send collect message to py server. Error: ", err)
-		return res.Response.Status, err
+		return res.Response.StatusCode, err
 	}
 
-	return res.Response.Status, nil
+	return res.Response.StatusCode, nil
 }
