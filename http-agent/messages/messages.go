@@ -97,24 +97,24 @@ func GetModel() (ModelResponse, error) {
 	return modelResponse, nil
 }
 
-func AllPeersDone() (string, error) {
+func AllPeersDone() (int, error) {
 	res, err := http.Get(pyServerAdress + "/all-peers-sent-weights")
 	if err != nil {
 		log.Println("Could not send all peers done signal. Error: ", err)
-		return res.Status, err
+		return res.StatusCode, err
 	}
 
-	return res.Status, nil
+	return res.StatusCode, nil
 }
 
-func DoOneEpoch() (string, error) {
+func DoOneEpoch() (int, error) {
 	res, err := http.Get(pyServerAdress + "/one-epoch")
 	if err != nil {
 		log.Println("Could not send one epoch done signal. Error: ", err)
-		return res.Status, err
+		return res.StatusCode, err
 	}
 
-	return res.Status, nil
+	return res.StatusCode, nil
 }
 
 func GetWeights() (WeightsResponse, error) {
@@ -139,44 +139,44 @@ func GetWeights() (WeightsResponse, error) {
 	return weightsResponse, nil
 }
 
-func Exit() (string, error) {
+func Exit() (int, error) {
 	res, err := http.Get(pyServerAdress + "/exit")
 	if err != nil {
 		log.Println("Could not send exit signal. Error: ", err)
-		return res.Status, err
+		return res.StatusCode, err
 	}
 
-	return res.Status, nil
+	return res.StatusCode, nil
 }
 
-func InitWeights(weights WeightsResponse) (string, error) {
+func InitWeights(weights WeightsResponse) (int, error) {
 	reqBody, err := json.Marshal(weights)
 	if err != nil {
 		log.Println("Could not marshal WeightsResponse struct")
-		return "", err
+		return 500, err
 	}
 
 	res, err := http.NewRequest("POST", pyServerAdress+"/init", bytes.NewReader(reqBody))
 	if err != nil {
 		log.Println("Could not send weights to py server. Error: ", err)
-		return res.Response.Status, err
+		return res.Response.StatusCode, err
 	}
 
-	return res.Response.Status, nil
+	return res.Response.StatusCode, nil
 }
 
-func CollectWeights(collectResponse CollectResponse) (string, error) {
+func CollectWeights(collectResponse CollectResponse) (int, error) {
 	reqBody, err := json.Marshal(collectResponse)
 	if err != nil {
 		log.Println("Could not marshal CollectResponse struct")
-		return "", err
+		return 500, err
 	}
 
 	res, err := http.NewRequest("POST", pyServerAdress+"/collect", bytes.NewReader(reqBody))
 	if err != nil {
 		log.Println("Could not send collect message to py server. Error: ", err)
-		return res.Response.Status, err
+		return res.Response.StatusCode, err
 	}
 
-	return res.Response.Status, nil
+	return res.Response.StatusCode, nil
 }
