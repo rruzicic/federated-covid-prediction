@@ -2,12 +2,14 @@ package actors
 
 import (
 	"log"
+	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
 	"github.com/asynkron/protoactor-go/remote"
 	gossip_actors "github.com/rruzicic/federated-covid-prediction/gossiper/actors"
 	grpctransformations "github.com/rruzicic/federated-covid-prediction/gossiper/grpc_transformations"
 	grpc_messages "github.com/rruzicic/federated-covid-prediction/grpc"
+	http_actors "github.com/rruzicic/federated-covid-prediction/http-agent/actors"
 	http_messages "github.com/rruzicic/federated-covid-prediction/http-agent/messages"
 	"github.com/rruzicic/federated-covid-prediction/peer/services"
 )
@@ -68,20 +70,30 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 	case *Message:
 		log.Println("Coordinator is in state InitLeader. Received &Message")
 
-		// get random weights using http actor. future request them back here
-		messageWeights := http_messages.WeightsResponse{}
+		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
+		httpPid := ctx.Spawn(httpProps)
+		messageWeights, err := ctx.RequestFuture(httpPid, &http_actors.GetRandomWeights{}, 30*time.Second).Result()
+		if err != nil {
+			log.Panic("Could not send and receive future from http actor for random weights. Error: ", err.Error())
+		}
 
-		// init weights using http actor. possibly future request 200 back here
-		// can use props and pid from http actor from above
+		// init weights using http actor
+		messageStatusCode, _ := ctx.RequestFuture(httpPid, &http_actors.InitWeights{
+			Weights: messageWeights.(http_messages.WeightsResponse),
+		}, 30*time.Second).Result()
 
+		// gossip weights
 		gossiperProps := actor.PropsFromProducer(gossip_actors.NewGossiper)
 		gossiperPid := ctx.Spawn(gossiperProps)
 		ctx.Send(gossiperPid, &gossip_actors.GossipWeights{
-			Weights: messageWeights,
+			Weights: messageWeights.(http_messages.WeightsResponse),
 		})
 
-		state.behavior.Become(state.OneEpoch)
-		ctx.Send(ctx.Self(), &Message{})
+		if messageStatusCode.(int) == 200 {
+			state.behavior.Become(state.OneEpoch)
+			ctx.Send(ctx.Self(), &Message{})
+		}
+		log.Panic("Didn't get status code 200 when initializing weights")
 
 	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator is in state InitLeader. Received &PeerExit")
@@ -101,9 +113,17 @@ func (state *Coordinator) Init(ctx actor.Context) {
 		messageWeights := grpctransformations.GRPCWeightsToMessageWeights(msg)
 
 		// send weights to http agent wait for 200 before changing state
+		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
+		httpPid := ctx.Spawn(httpProps)
+		messageStatusCode, _ := ctx.RequestFuture(httpPid, &http_actors.InitWeights{
+			Weights: messageWeights,
+		}, 30*time.Second).Result()
 
-		state.behavior.Become(state.OneEpoch)
-		ctx.Send(ctx.Self(), &Message{})
+		if messageStatusCode.(int) == 200 {
+			state.behavior.Become(state.OneEpoch)
+			ctx.Send(ctx.Self(), &Message{})
+		}
+		log.Panic("Didn't get status code 200 when initializing weights")
 
 	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator is in state Init. Received &PeerExit")
@@ -122,14 +142,22 @@ func (state *Coordinator) OneEpoch(ctx actor.Context) {
 		log.Println("Coordinator is in state OneEpoch. Received &Message")
 
 		// spawn http actor send one epoch signal, request future result for 200 or 201
+		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
+		httpPid := ctx.Spawn(httpProps)
+		messageStatusCode, _ := ctx.RequestFuture(httpPid, &http_actors.OneEpoch{}, 30*time.Second).Result()
 
-		// if 200
-		state.behavior.Become(state.Collect)
-		ctx.Send(ctx.Self(), &Message{})
+		if messageStatusCode.(int) == 200 {
+			log.Println("Got 200 from one-epoch")
+			state.behavior.Become(state.Collect)
+			ctx.Send(ctx.Self(), &Message{})
+		}
 
-		// if 201
-		state.behavior.Become(state.Exit)
-		ctx.Send(ctx.Self(), &Message{})
+		if messageStatusCode.(int) == 201 {
+			log.Println("Got 201 from one-epoch")
+			state.behavior.Become(state.Exit)
+			ctx.Send(ctx.Self(), &Message{})
+		}
+		log.Panic("Didn't get 200 or 201 from one-epoch singal")
 
 	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator is in state OneEpoch. Received &PeerExit")
@@ -171,6 +199,22 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 		}
 
 		// send it to http agent
+		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
+		httpPid := ctx.Spawn(httpProps)
+		messageStatusCode, _ := ctx.RequestFuture(httpPid, &http_actors.Collect{
+			Collect: messageCollect,
+		}, 30*time.Second).Result()
+
+		if messageStatusCode.(int) == 200 {
+			log.Println("Got status code 200 from collect.")
+		}
+
+		if messageStatusCode.(int) == 201 {
+			log.Println("Got status code 201 from collect sending all peers done")
+
+			state.behavior.Become(state.OneEpoch)
+			ctx.Send(ctx.Self(), &Message{})
+		}
 
 	case *grpc_messages.GRPCAllPeersDone:
 		log.Println("Coordinator is in state Collect. Received &AllPeersDone")
