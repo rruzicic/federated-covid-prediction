@@ -7,3 +7,9 @@ message GRPCWeights {
   repeated float hidden_weights = 1;
   repeated float output_weights = 2;
 }
+
+message GRPCExit {
+  actor.PID coordinatorPID = 1;
+  string address = 2;
+  int32 port = 3;
+}
