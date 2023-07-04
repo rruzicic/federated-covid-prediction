@@ -53,26 +53,26 @@ func HelloWorld() error {
 	return nil
 }
 
-func GetRandomWeights() (WeightsResponse, error) {
+func GetRandomWeights() (WeightsResponse, int, error) {
 	var weightsResponse WeightsResponse
 	res, err := http.Get(pyServerAdress + "/random-weights")
 	if err != nil {
 		log.Println("Could not get random weights")
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Println("Could not read the response body")
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
 	if err := json.Unmarshal(body, &weightsResponse); err != nil {
 		log.Println("Could not unmarshall response body into response structure. Error: ", err.Error())
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
-	return weightsResponse, nil
+	return weightsResponse, res.StatusCode, nil
 }
 
 func GetModel() (ModelResponse, error) {
@@ -117,26 +117,26 @@ func DoOneEpoch() (int, error) {
 	return res.StatusCode, nil
 }
 
-func GetWeights() (WeightsResponse, error) {
+func GetWeights() (WeightsResponse, int, error) {
 	var weightsResponse WeightsResponse
 	res, err := http.Get(pyServerAdress + "/weights")
 	if err != nil {
 		log.Println("Could not get weights")
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Println("Could not read the response body")
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
 	if err := json.Unmarshal(body, &weightsResponse); err != nil {
 		log.Println("Could not unmarshall response body into response structure. Error: ", err.Error())
-		return weightsResponse, err
+		return weightsResponse, res.StatusCode, err
 	}
 
-	return weightsResponse, nil
+	return weightsResponse, res.StatusCode, nil
 }
 
 func Exit() (int, error) {
