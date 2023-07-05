@@ -42,6 +42,7 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 		ctx.Send(gossiperPid, &gossip_actors.BroadcastCoordinatorPID{})
 
 		state.behavior.Become(state.Init)
+		ctx.Send(ctx.Self(), &Message{})
 
 	case *BecomeLeader:
 		log.Println("Coordinator in state Startup. Received &Message")
@@ -52,6 +53,7 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 		ctx.Send(gossiperPid, &gossip_actors.BroadcastCoordinatorPID{})
 
 		state.behavior.Become(state.InitLeader)
+		ctx.Send(ctx.Self(), &Message{})
 
 	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator in state Startup. Received &PeerExit")
