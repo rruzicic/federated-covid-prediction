@@ -2,11 +2,13 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/rruzicic/federated-covid-prediction/coordinator/actors"
 	"github.com/rruzicic/federated-covid-prediction/peer/controllers"
 )
 
 func main() {
-	ginSetup()
+	actors.SetupLeaderCoordinator()
+	go ginSetup()
 }
 
 func ginSetup() {
