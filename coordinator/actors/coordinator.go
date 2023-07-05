@@ -187,12 +187,18 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 	case *Message:
 		log.Println("Coordinator is in state Collect. Received &Message")
 		// get weights from http actor
-		messageWeights := http_messages.WeightsResponse{}
+		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
+		httpPid := ctx.Spawn(httpProps)
+		messageWeights, err := ctx.RequestFuture(httpPid, &http_actors.Weigths{}, 30*time.Second).Result()
+		if err != nil {
+			log.Println("Could not recieve future from http actor for get weights")
+			break
+		}
 
 		// prepare message to for gossiper
 		peers, _ := services.NumberOfPeers()
 		messageCollect := gossip_actors.Collect{
-			Weights: messageWeights,
+			Weights: messageWeights.(http_messages.WeightsResponse),
 			Peers:   peers,
 		}
 
