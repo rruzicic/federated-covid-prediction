@@ -90,7 +90,7 @@ def collect_weights():
     peers = req["peers"]
     weights = {
         "hidden_weights": req["hidden_weights"],
-        "output_weights": req["output_weigths"],
+        "output_weights": req["output_weights"],
     }
 
     OTHERS_HIDDEN_WEIGHTS.append(np.array(weights["hidden_weights"]))
