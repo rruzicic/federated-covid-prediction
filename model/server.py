@@ -106,9 +106,9 @@ def collect_weights():
         OTHERS_OUTPUT_WEIGHTS = []
 
         # to tell the peer that sent you his weights that he was your last
-        return Response(201)
+        return Response(status=201)
 
-    return Response(200)
+    return Response(status=200)
 
 
 @APP.get("/all-peers-sent-weights")
@@ -118,7 +118,7 @@ def all_peers_sent_weights():
     If it's 201 that means the requester was the last one to send their weights.
     So this endpoint is the way for the requester to notify the server that he was the last one
     """
-    return Response(200)
+    return Response(status=200)
 
 
 @APP.get("/one-epoch")
@@ -135,9 +135,9 @@ def start_one_epoch():
     print(f"Epochs done: {CURRENT_EPOCH} of {TOTAL_EPOCHS}")
 
     if CURRENT_EPOCH >= TOTAL_EPOCHS:
-        return Response(201)
+        return Response(status=201)
 
-    return Response(200)
+    return Response(status=200)
 
 
 @APP.get("/weights")
@@ -174,7 +174,7 @@ def plot_model_loss():
     with open(os.path.join("model", "model_info", "model_weights.pkl"), "wb") as f:
         pickle.dump(weights, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    return Response(200)
+    return Response(status=200)
 
 
 def main():
