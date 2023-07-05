@@ -129,7 +129,8 @@ def start_one_epoch():
 
     for _ in range(EPOCHS_PER_REQUEST):
         MODEL = one_epoch(MODEL, DATA, LABELS)
-        CURRENT_EPOCH += EPOCHS_PER_REQUEST
+    CURRENT_EPOCH += EPOCHS_PER_REQUEST
+    print(f"Epochs done: {CURRENT_EPOCH} of {TOTAL_EPOCHS}")
 
     if CURRENT_EPOCH >= TOTAL_EPOCHS:
         return Response(201)
