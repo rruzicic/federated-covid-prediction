@@ -96,7 +96,9 @@ def collect_weights():
     OTHERS_HIDDEN_WEIGHTS.append(np.array(weights["hidden_weights"]))
     OTHERS_OUTPUT_WEIGHTS.append(np.array(weights["output_weights"]))
 
+    print(f"\nINFO:\nhidden weights: {len(OTHERS_HIDDEN_WEIGHTS)}\noutput weights: {len(OTHERS_OUTPUT_WEIGHTS)}\npeers: {peers}")
     if (len(OTHERS_HIDDEN_WEIGHTS) == peers) and (len(OTHERS_OUTPUT_WEIGHTS) == peers):
+        print("Upo u if od collect")
         MODEL = personalized_weight_update(
             MODEL, OTHERS_HIDDEN_WEIGHTS, OTHERS_OUTPUT_WEIGHTS
         )
