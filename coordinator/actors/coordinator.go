@@ -64,6 +64,8 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -109,6 +111,8 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -141,6 +145,8 @@ func (state *Coordinator) Init(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -177,6 +183,8 @@ func (state *Coordinator) OneEpoch(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -249,6 +257,8 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
