@@ -50,7 +50,7 @@ func (state *Gossiper) Receive(ctx actor.Context) {
 
 		// make and send post requests to each peer
 		for _, address := range peerAddresses {
-			url := fmt.Sprintf("%s:%d/coordinator-pid", address.Address, address.Port)
+			url := fmt.Sprintf("%s:%d/coordinator-pid", address.Address, address.Port+1000)
 
 			_, err := http.NewRequest("POST", url, bytes.NewReader(reqBody))
 			if err != nil {
