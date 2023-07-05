@@ -80,6 +80,7 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 		messageWeights, err := ctx.RequestFuture(httpPid, &http_actors.GetRandomWeights{}, 30*time.Second).Result()
 		if err != nil {
 			log.Panic("Could not send and receive future from http actor for random weights. Error: ", err.Error())
+			break
 		}
 
 		// init weights using http actor
@@ -95,8 +96,10 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 		})
 
 		if messageStatusCode.(int) == 200 {
+			log.Println("Coordinator got 200 from init weights")
 			state.behavior.Become(state.OneEpoch)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 		log.Panic("Didn't get status code 200 when initializing weights")
 
@@ -125,8 +128,10 @@ func (state *Coordinator) Init(ctx actor.Context) {
 		}, 30*time.Second).Result()
 
 		if messageStatusCode.(int) == 200 {
+			log.Println("Coordinator got 200 from init weights")
 			state.behavior.Become(state.OneEpoch)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 		log.Panic("Didn't get status code 200 when initializing weights")
 
@@ -155,12 +160,14 @@ func (state *Coordinator) OneEpoch(ctx actor.Context) {
 			log.Println("Got 200 from one-epoch")
 			state.behavior.Become(state.Collect)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 
 		if messageStatusCode.(int) == 201 {
 			log.Println("Got 201 from one-epoch")
 			state.behavior.Become(state.Exit)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 		log.Panic("Didn't get 200 or 201 from one-epoch singal")
 
@@ -212,6 +219,7 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 
 		if messageStatusCode.(int) == 200 {
 			log.Println("Got status code 200 from collect.")
+			break
 		}
 
 		if messageStatusCode.(int) == 201 {
@@ -219,6 +227,7 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 
 			state.behavior.Become(state.OneEpoch)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 
 	case *grpc_messages.GRPCAllPeersDone:
