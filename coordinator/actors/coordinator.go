@@ -205,6 +205,7 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 		ctx.Send(gossiperPid, &messageCollect)
 
 	case *grpc_messages.GRPCCollect:
+		log.Println("Coordinator is in state Collect. Received &GRPCCollect")
 		// unpack grpc message
 		messageWeights := grpctransformations.GRPCWeightsToMessageWeights(msg.Weights)
 		messageCollect := http_messages.CollectResponse{
