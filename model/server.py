@@ -158,20 +158,16 @@ def plot_model_loss():
     """
     global MODEL
 
-    # mkdir if there is none
-    if not os.path.exists(os.path.join("model", "model_info")):
-        os.mkdir(os.path.join("model", "model_info"))
-
     # save model loss
     plt.plot(MODEL.loss)
-    plt.savefig(os.path.join("model", "model_info", "LossImage.png"))
+    plt.savefig(os.path.join("model", "LossImage.png"))
 
     # save model weights in pickle
     weights = {
         "hidden_weights": MODEL.hidden_weights.tolist(),
         "output_weights": MODEL.output_weights.tolist(),
     }
-    with open(os.path.join("model", "model_info", "model_weights.pkl"), "wb") as f:
+    with open(os.path.join("model", "model_weights.pkl"), "wb") as f:
         pickle.dump(weights, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     return Response(status=200)
