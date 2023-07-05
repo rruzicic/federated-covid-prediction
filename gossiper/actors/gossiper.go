@@ -52,17 +52,19 @@ func (state *Gossiper) Receive(ctx actor.Context) {
 
 		// make and send post requests to each peer
 		for _, address := range peerAddresses {
-			url := fmt.Sprintf("%s:%d/coordinator-pid", address.Address, address.Port+1000)
+			url := fmt.Sprintf("http://%s:%d/coordinator-pid", address.Address, address.Port+1000)
 
 			client := &http.Client{}
 			req, err := http.NewRequest("POST", url, bytes.NewReader(reqBody))
 			if err != nil {
 				log.Println("Could not make broadcast pid request for", ctx.Parent())
+				log.Println(err.Error())
 				break
 			}
 			_, err = client.Do(req)
 			if err != nil {
 				log.Println("Could not send request to peer at ", address)
+				log.Println(err.Error())
 				break
 			}
 		}
