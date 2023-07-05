@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-const pyServerAdress = "http://localhost:6900"
+const pyServerAdress = "http://localhost:6901"
 
 func MakeMatrix(numRows int, numColumns int) [][]float32 {
 	matrix := make([][]float32, numRows)

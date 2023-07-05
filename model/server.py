@@ -179,7 +179,7 @@ def main():
     main func
     """
     global APP
-    APP.run(host="localhost", port=6900, debug=True)
+    APP.run(host="localhost", port=6901, debug=True)
 
 
 if __name__ == "__main__":
