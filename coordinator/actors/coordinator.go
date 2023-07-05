@@ -1,7 +1,10 @@
 package actors
 
 import (
+	"bufio"
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -45,7 +48,7 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 		ctx.Send(ctx.Self(), &Message{})
 
 	case *BecomeLeader:
-		log.Println("Coordinator in state Startup. Received &Message")
+		log.Println("Coordinator in state Startup. Received &BecomeLeader")
 
 		gossiperProps := actor.PropsFromProducer(gossip_actors.NewGossiper)
 		gossiperPid := ctx.Spawn(gossiperProps)
@@ -275,6 +278,10 @@ func SetupCoordinator() {
 	remoter, ctx := setupRemote()
 	remoter.Start()
 
+	fmt.Println("Press [ENTER] when all peers get this message")
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
+
 	supervision := actor.NewOneForOneStrategy(10, 1000, actor.DefaultDecider) // possibly implmenet your decider like in coordinator_mock
 	props := actor.PropsFromProducer(NewCoordinator, actor.WithSupervisor(supervision))
 	pid := ctx.Spawn(props)
@@ -286,6 +293,10 @@ func SetupLeaderCoordinator() {
 
 	remoter, ctx := setupRemote()
 	remoter.Start()
+
+	fmt.Println("Press [ENTER] when all peers get this message")
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
 
 	supervision := actor.NewOneForOneStrategy(10, 1000, actor.DefaultDecider) // possibly implmenet your decider like in coordinator_mock
 	props := actor.PropsFromProducer(NewCoordinator, actor.WithSupervisor(supervision))

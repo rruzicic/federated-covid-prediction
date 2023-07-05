@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -10,8 +13,12 @@ import (
 )
 
 func main() {
-	actors.SetupLeaderCoordinator()
 	go ginSetup()
+	actors.SetupLeaderCoordinator()
+
+	fmt.Println("Press [TAB] when your agent reaches EXIT state")
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\t')
 }
 
 func ginSetup() {
