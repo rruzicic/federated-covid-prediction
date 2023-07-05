@@ -267,6 +267,18 @@ func (state *Coordinator) Exit(ctx actor.Context) {
 			CoordinatorPID:     *ctx.Self(),
 			YourAddressAndHost: *yourAddress,
 		})
+
+		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
+		httpPid := ctx.Spawn(httpProps)
+		messageStatusCode, _ := ctx.RequestFuture(httpPid, &http_actors.Exit{}, 30*time.Second).Result()
+
+		if messageStatusCode.(int) == 200 {
+			log.Println("Coordinator got 200 from exit")
+			state.behavior.Become(state.OneEpoch)
+			ctx.Send(ctx.Self(), &Message{})
+			break
+		}
+		log.Panic("Didn't get status code 200 when exiting")
 	}
 }
 
