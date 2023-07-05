@@ -164,7 +164,7 @@ def plot_model_loss():
 
     # save model loss
     plt.plot(MODEL.loss)
-    plt.savefig(os.path.join("model", "model_info"", LossImage.png"))
+    plt.savefig(os.path.join("model", "model_info", "LossImage.png"))
 
     # save model weights in pickle
     weights = {
