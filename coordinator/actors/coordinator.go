@@ -27,6 +27,7 @@ type ( // messages that are sent from other gossipers that end up in the coordin
 	BecomeLeader     struct{}
 	GossipedWeights  struct{}
 	CollectedWeights struct{}
+	ExitWait         struct{}
 )
 
 func (state *Coordinator) Receive(ctx actor.Context) {
@@ -66,6 +67,8 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -111,6 +114,8 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -143,6 +148,8 @@ func (state *Coordinator) Init(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -179,6 +186,8 @@ func (state *Coordinator) OneEpoch(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -251,6 +260,8 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -274,11 +285,14 @@ func (state *Coordinator) Exit(ctx actor.Context) {
 
 		if messageStatusCode.(int) == 200 {
 			log.Println("Coordinator got 200 from exit")
-			state.behavior.Become(state.OneEpoch)
-			ctx.Send(ctx.Self(), &Message{})
+			ctx.Send(ctx.Self(), &ExitWait{})
 			break
 		}
 		log.Panic("Didn't get status code 200 when exiting")
+
+	case *ExitWait:
+		log.Println("Coordinator is in state Exit. Received &ExitWait")
+		ctx.Send(ctx.Self(), &ExitWait{})
 	}
 }
 
