@@ -156,13 +156,19 @@ func InitWeights(weights WeightsResponse) (int, error) {
 		return 500, err
 	}
 
-	res, err := http.NewRequest("POST", pyServerAdress+"/init", bytes.NewReader(reqBody))
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", pyServerAdress+"/init", bytes.NewReader(reqBody))
+	if err != nil {
+		log.Println("Could not make post request for initalizing weights. Error: ", err)
+		return -1, err
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		log.Println("Could not send weights to py server. Error: ", err)
-		return res.Response.StatusCode, err
+		return -1, err
 	}
 
-	return res.Response.StatusCode, nil
+	return res.StatusCode, nil
 }
 
 func CollectWeights(collectResponse CollectResponse) (int, error) {
@@ -172,11 +178,17 @@ func CollectWeights(collectResponse CollectResponse) (int, error) {
 		return 500, err
 	}
 
-	res, err := http.NewRequest("POST", pyServerAdress+"/collect", bytes.NewReader(reqBody))
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", pyServerAdress+"/collect", bytes.NewReader(reqBody))
+	if err != nil {
+		log.Println("Could not make post request for collect. Error: ", err)
+		return -1, err
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		log.Println("Could not send collect message to py server. Error: ", err)
-		return res.Response.StatusCode, err
+		return -1, err
 	}
 
-	return res.Response.StatusCode, nil
+	return res.StatusCode, nil
 }

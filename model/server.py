@@ -25,6 +25,19 @@ OTHERS_OUTPUT_WEIGHTS = []
 CURRENT_EPOCH = 0
 
 
+def __save_model_to_pkl() -> None:
+    """
+    Saves the model to a pkl file in the server directory
+    """
+    # save model weights in pickle
+    weights = {
+        "hidden_weights": MODEL.hidden_weights.tolist(),
+        "output_weights": MODEL.output_weights.tolist(),
+    }
+    with open(os.path.join("model", "model_weights.pkl"), "wb") as f:
+        pickle.dump(weights, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 @APP.get("/")
 def hello_world():
     """
@@ -90,13 +103,15 @@ def collect_weights():
     peers = req["peers"]
     weights = {
         "hidden_weights": req["hidden_weights"],
-        "output_weights": req["output_weigths"],
+        "output_weights": req["output_weights"],
     }
 
     OTHERS_HIDDEN_WEIGHTS.append(np.array(weights["hidden_weights"]))
     OTHERS_OUTPUT_WEIGHTS.append(np.array(weights["output_weights"]))
 
-    if (OTHERS_HIDDEN_WEIGHTS == peers - 1) and (OTHERS_OUTPUT_WEIGHTS == peers - 1):
+    print(f"\nINFO:\nhidden weights: {len(OTHERS_HIDDEN_WEIGHTS)}\noutput weights: {len(OTHERS_OUTPUT_WEIGHTS)}\npeers: {peers}")
+    if (len(OTHERS_HIDDEN_WEIGHTS) == peers) and (len(OTHERS_OUTPUT_WEIGHTS) == peers):
+        print("Upo u if od collect")
         MODEL = personalized_weight_update(
             MODEL, OTHERS_HIDDEN_WEIGHTS, OTHERS_OUTPUT_WEIGHTS
         )
@@ -104,9 +119,9 @@ def collect_weights():
         OTHERS_OUTPUT_WEIGHTS = []
 
         # to tell the peer that sent you his weights that he was your last
-        return Response(201)
+        return Response(status=201)
 
-    return Response(200)
+    return Response(status=200)
 
 
 @APP.get("/all-peers-sent-weights")
@@ -116,7 +131,7 @@ def all_peers_sent_weights():
     If it's 201 that means the requester was the last one to send their weights.
     So this endpoint is the way for the requester to notify the server that he was the last one
     """
-    return Response(200)
+    return Response(status=200)
 
 
 @APP.get("/one-epoch")
@@ -129,12 +144,16 @@ def start_one_epoch():
 
     for _ in range(EPOCHS_PER_REQUEST):
         MODEL = one_epoch(MODEL, DATA, LABELS)
-        CURRENT_EPOCH += EPOCHS_PER_REQUEST
+    CURRENT_EPOCH += EPOCHS_PER_REQUEST
+    print(f"Epochs done: {CURRENT_EPOCH} of {TOTAL_EPOCHS}")
+
+    # makes sense to save the model after every epoch step so that it's always on hand
+    __save_model_to_pkl()
 
     if CURRENT_EPOCH >= TOTAL_EPOCHS:
-        return Response(201)
+        return Response(status=201)
 
-    return Response(200)
+    return Response(status=200)
 
 
 @APP.get("/weights")
@@ -155,23 +174,13 @@ def plot_model_loss():
     """
     global MODEL
 
-    # mkdir if there is none
-    if not os.path.exists(os.path.join("model", "model_info")):
-        os.mkdir(os.path.join("model", "model_info"))
-
     # save model loss
     plt.plot(MODEL.loss)
-    plt.savefig(os.path.join("model", "model_info"", LossImage.png"))
+    plt.savefig(os.path.join("model", "LossImage.png"))
 
-    # save model weights in pickle
-    weights = {
-        "hidden_weights": MODEL.hidden_weights.tolist(),
-        "output_weights": MODEL.output_weights.tolist(),
-    }
-    with open(os.path.join("model", "model_info", "model_weights.pkl"), "wb") as f:
-        pickle.dump(weights, f, protocol=pickle.HIGHEST_PROTOCOL)
+    __save_model_to_pkl()
 
-    return Response(200)
+    return Response(status=200)
 
 
 def main():

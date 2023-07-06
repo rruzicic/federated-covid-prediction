@@ -40,21 +40,32 @@ func (state *Gossiper) Receive(ctx actor.Context) {
 		peerAddresses, err := services.GetPeerAddresses()
 		if err != nil {
 			log.Panic("Could not get peer addresses. Error: ", err.Error())
+			break
 		}
 
 		// make request body
 		reqBody, err := json.Marshal(ctx.Parent())
 		if err != nil {
 			log.Panic("Could not marshall coordinator pid. Error: ", err.Error())
+			break
 		}
 
 		// make and send post requests to each peer
 		for _, address := range peerAddresses {
-			url := fmt.Sprintf("%s:%d/coordinator-pid", address.Address, address.Port)
+			url := fmt.Sprintf("http://%s:%d/coordinator-pid", address.Address, address.Port+1000)
 
-			_, err := http.NewRequest("POST", url, bytes.NewReader(reqBody))
+			client := &http.Client{}
+			req, err := http.NewRequest("POST", url, bytes.NewReader(reqBody))
+			if err != nil {
+				log.Println("Could not make broadcast pid request for", ctx.Parent())
+				log.Println(err.Error())
+				break
+			}
+			_, err = client.Do(req)
 			if err != nil {
 				log.Println("Could not send request to peer at ", address)
+				log.Println(err.Error())
+				break
 			}
 		}
 
@@ -64,6 +75,7 @@ func (state *Gossiper) Receive(ctx actor.Context) {
 		coordinators, err := services.LoadCoordinatorPIDS()
 		if err != nil {
 			log.Panic("Could not get coordinator pids. Error: ", err.Error())
+			break
 		}
 
 		grpcWeights := grpctransformations.MessageWeightsToGRPCWeights(msg.Weights)
@@ -83,6 +95,7 @@ func (state *Gossiper) Receive(ctx actor.Context) {
 		coordinators, err := services.LoadCoordinatorPIDS()
 		if err != nil {
 			log.Panic("Could not get coordinator pids. Error: ", err.Error())
+			break
 		}
 
 		for _, coordinatorPid := range coordinators {
@@ -100,6 +113,7 @@ func (state *Gossiper) Receive(ctx actor.Context) {
 		coordinators, err := services.LoadCoordinatorPIDS()
 		if err != nil {
 			log.Panic("Could not get coordinator pids. Error: ", err.Error())
+			break
 		}
 
 		for _, coordinatorPid := range coordinators {

@@ -1,7 +1,10 @@
 package actors
 
 import (
+	"bufio"
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/asynkron/protoactor-go/actor"
@@ -24,6 +27,7 @@ type ( // messages that are sent from other gossipers that end up in the coordin
 	BecomeLeader     struct{}
 	GossipedWeights  struct{}
 	CollectedWeights struct{}
+	ExitWait         struct{}
 )
 
 func (state *Coordinator) Receive(ctx actor.Context) {
@@ -42,9 +46,10 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 		ctx.Send(gossiperPid, &gossip_actors.BroadcastCoordinatorPID{})
 
 		state.behavior.Become(state.Init)
+		ctx.Send(ctx.Self(), &Message{})
 
 	case *BecomeLeader:
-		log.Println("Coordinator in state Startup. Received &Message")
+		log.Println("Coordinator in state Startup. Received &BecomeLeader")
 
 		gossiperProps := actor.PropsFromProducer(gossip_actors.NewGossiper)
 		gossiperPid := ctx.Spawn(gossiperProps)
@@ -52,6 +57,7 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 		ctx.Send(gossiperPid, &gossip_actors.BroadcastCoordinatorPID{})
 
 		state.behavior.Become(state.InitLeader)
+		ctx.Send(ctx.Self(), &Message{})
 
 	case *grpc_messages.GRPCExit:
 		log.Println("Coordinator in state Startup. Received &PeerExit")
@@ -61,6 +67,8 @@ func (state *Coordinator) Startup(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -75,6 +83,7 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 		messageWeights, err := ctx.RequestFuture(httpPid, &http_actors.GetRandomWeights{}, 30*time.Second).Result()
 		if err != nil {
 			log.Panic("Could not send and receive future from http actor for random weights. Error: ", err.Error())
+			break
 		}
 
 		// init weights using http actor
@@ -90,8 +99,10 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 		})
 
 		if messageStatusCode.(int) == 200 {
+			log.Println("Coordinator got 200 from init weights")
 			state.behavior.Become(state.OneEpoch)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 		log.Panic("Didn't get status code 200 when initializing weights")
 
@@ -103,6 +114,8 @@ func (state *Coordinator) InitLeader(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -120,8 +133,10 @@ func (state *Coordinator) Init(ctx actor.Context) {
 		}, 30*time.Second).Result()
 
 		if messageStatusCode.(int) == 200 {
+			log.Println("Coordinator got 200 from init weights")
 			state.behavior.Become(state.OneEpoch)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 		log.Panic("Didn't get status code 200 when initializing weights")
 
@@ -133,6 +148,8 @@ func (state *Coordinator) Init(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -150,12 +167,14 @@ func (state *Coordinator) OneEpoch(ctx actor.Context) {
 			log.Println("Got 200 from one-epoch")
 			state.behavior.Become(state.Collect)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 
 		if messageStatusCode.(int) == 201 {
 			log.Println("Got 201 from one-epoch")
 			state.behavior.Become(state.Exit)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 		log.Panic("Didn't get 200 or 201 from one-epoch singal")
 
@@ -167,6 +186,8 @@ func (state *Coordinator) OneEpoch(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -174,13 +195,27 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *Message:
 		log.Println("Coordinator is in state Collect. Received &Message")
+
+		// if there are no peers theres no point in doing collect, you're on your own
+		if peers, _ := services.NumberOfPeers(); peers == 0 {
+			state.behavior.Become(state.OneEpoch)
+			ctx.Send(ctx.Self(), &Message{})
+			break
+		}
+
 		// get weights from http actor
-		messageWeights := http_messages.WeightsResponse{}
+		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
+		httpPid := ctx.Spawn(httpProps)
+		messageWeights, err := ctx.RequestFuture(httpPid, &http_actors.Weigths{}, 30*time.Second).Result()
+		if err != nil {
+			log.Println("Could not recieve future from http actor for get weights")
+			break
+		}
 
 		// prepare message to for gossiper
 		peers, _ := services.NumberOfPeers()
 		messageCollect := gossip_actors.Collect{
-			Weights: messageWeights,
+			Weights: messageWeights.(http_messages.WeightsResponse),
 			Peers:   peers,
 		}
 
@@ -190,6 +225,7 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 		ctx.Send(gossiperPid, &messageCollect)
 
 	case *grpc_messages.GRPCCollect:
+		log.Println("Coordinator is in state Collect. Received &GRPCCollect")
 		// unpack grpc message
 		messageWeights := grpctransformations.GRPCWeightsToMessageWeights(msg.Weights)
 		messageCollect := http_messages.CollectResponse{
@@ -206,7 +242,8 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 		}, 30*time.Second).Result()
 
 		if messageStatusCode.(int) == 200 {
-			log.Println("Got status code 200 from collect.")
+			log.Println("Got status code 200 from collect. Waiting for rest of peers")
+			break
 		}
 
 		if messageStatusCode.(int) == 201 {
@@ -214,6 +251,7 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 
 			state.behavior.Become(state.OneEpoch)
 			ctx.Send(ctx.Self(), &Message{})
+			break
 		}
 
 	case *grpc_messages.GRPCAllPeersDone:
@@ -230,6 +268,8 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 			Port:    int(msg.Port),
 		})
 		services.RemoveCoordinatorPID(*msg.CoordinatorPID)
+
+		ctx.Send(ctx.Self(), &Message{})
 	}
 }
 
@@ -246,6 +286,21 @@ func (state *Coordinator) Exit(ctx actor.Context) {
 			CoordinatorPID:     *ctx.Self(),
 			YourAddressAndHost: *yourAddress,
 		})
+
+		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
+		httpPid := ctx.Spawn(httpProps)
+		messageStatusCode, _ := ctx.RequestFuture(httpPid, &http_actors.Exit{}, 30*time.Second).Result()
+
+		if messageStatusCode.(int) == 200 {
+			log.Println("Coordinator got 200 from exit")
+			ctx.Send(ctx.Self(), &ExitWait{})
+			break
+		}
+		log.Panic("Didn't get status code 200 when exiting")
+
+	case *ExitWait:
+		log.Println("Coordinator is in state Exit. Received &ExitWait")
+		ctx.Send(ctx.Self(), &ExitWait{})
 	}
 }
 
@@ -273,6 +328,10 @@ func SetupCoordinator() {
 	remoter, ctx := setupRemote()
 	remoter.Start()
 
+	fmt.Println("Press [ENTER] when all peers get this message")
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
+
 	supervision := actor.NewOneForOneStrategy(10, 1000, actor.DefaultDecider) // possibly implmenet your decider like in coordinator_mock
 	props := actor.PropsFromProducer(NewCoordinator, actor.WithSupervisor(supervision))
 	pid := ctx.Spawn(props)
@@ -284,6 +343,10 @@ func SetupLeaderCoordinator() {
 
 	remoter, ctx := setupRemote()
 	remoter.Start()
+
+	fmt.Println("Press [ENTER] when all peers get this message")
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
 
 	supervision := actor.NewOneForOneStrategy(10, 1000, actor.DefaultDecider) // possibly implmenet your decider like in coordinator_mock
 	props := actor.PropsFromProducer(NewCoordinator, actor.WithSupervisor(supervision))
