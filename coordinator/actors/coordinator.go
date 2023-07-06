@@ -195,6 +195,14 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *Message:
 		log.Println("Coordinator is in state Collect. Received &Message")
+
+		// if there are no peers theres no point in doing collect, you're on your own
+		if peers, _ := services.NumberOfPeers(); peers == 0 {
+			state.behavior.Become(state.OneEpoch)
+			ctx.Send(ctx.Self(), &Message{})
+			break
+		}
+
 		// get weights from http actor
 		httpProps := actor.PropsFromProducer(http_actors.NewHTTPActor)
 		httpPid := ctx.Spawn(httpProps)
@@ -234,7 +242,7 @@ func (state *Coordinator) Collect(ctx actor.Context) {
 		}, 30*time.Second).Result()
 
 		if messageStatusCode.(int) == 200 {
-			log.Println("Got status code 200 from collect.")
+			log.Println("Got status code 200 from collect. Waiting for rest of peers")
 			break
 		}
 
