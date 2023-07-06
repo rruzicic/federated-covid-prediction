@@ -25,6 +25,19 @@ OTHERS_OUTPUT_WEIGHTS = []
 CURRENT_EPOCH = 0
 
 
+def __save_model_to_pkl() -> None:
+    """
+    Saves the model to a pkl file in the server directory
+    """
+    # save model weights in pickle
+    weights = {
+        "hidden_weights": MODEL.hidden_weights.tolist(),
+        "output_weights": MODEL.output_weights.tolist(),
+    }
+    with open(os.path.join("model", "model_weights.pkl"), "wb") as f:
+        pickle.dump(weights, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 @APP.get("/")
 def hello_world():
     """
@@ -131,6 +144,9 @@ def start_one_epoch():
         MODEL = one_epoch(MODEL, DATA, LABELS)
         CURRENT_EPOCH += EPOCHS_PER_REQUEST
 
+    # makes sense to save the model after every epoch step so that it's always on hand
+    __save_model_to_pkl()
+
     if CURRENT_EPOCH >= TOTAL_EPOCHS:
         return Response(201)
 
@@ -159,13 +175,7 @@ def plot_model_loss():
     plt.plot(MODEL.loss)
     plt.savefig(os.path.join("model", "LossImage.png"))
 
-    # save model weights in pickle
-    weights = {
-        "hidden_weights": MODEL.hidden_weights.tolist(),
-        "output_weights": MODEL.output_weights.tolist(),
-    }
-    with open(os.path.join("model", "model_weights.pkl"), "wb") as f:
-        pickle.dump(weights, f, protocol=pickle.HIGHEST_PROTOCOL)
+    __save_model_to_pkl()
 
     return Response(200)
 
